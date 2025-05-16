@@ -1,0 +1,19 @@
+# Expo
+.expo/
+.expo-shared/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# macOS
+.DS_Store
+
+# Android
+android/build/
+android/app/build/
+
+# iOS
+ios/build/
+Podfile.lock
