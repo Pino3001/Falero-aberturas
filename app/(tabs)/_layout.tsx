@@ -28,50 +28,51 @@ export default function TabLayout() {
   return (
     <PaperProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Nuevo Presupuesto',
-          tabBarIcon: ({ color }) => <Entypo name="calculator" size={24} color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="ellipsis-v"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Nueva Abertura',
-          tabBarIcon: ({ color }) => <Octicons name="diff-added" size={24} color={color} /> ,
-        }}
-      />
-      <Tabs.Screen
-        name="three"
-        options={{
-          title: 'Lista Presupuestos',
-          tabBarIcon: ({ color }) => <FontAwesome name="list-ol" size={24} color={color} />,
-        }}
-      />
-    </Tabs>
-    </ThemeProvider>
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+            // Disable the static render of the header on web
+            // to prevent a hydration error in React Navigation v6.
+            headerShown: useClientOnlyValue(false, true),
+          }}>
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Nuevo Presupuesto',
+              tabBarIcon: ({ color }) => <Entypo name="calculator" size={24} color={color} />,
+              headerRight: () => (
+                <Link href="/modal" asChild>
+                  <Pressable>
+                    {({ pressed }) => (
+                      <FontAwesome
+                        name="ellipsis-v"
+                        size={25}
+                        color={Colors[colorScheme ?? 'light'].text}
+                        style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                      />
+                    )}
+                  </Pressable>
+                </Link>
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="three"
+            options={{
+              title: 'Lista Presupuestos',
+              tabBarIcon: ({ color }) => <FontAwesome name="list-ol" size={24} color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="precio"
+            options={{
+              title: 'Editar Precio',
+              tabBarIcon: ({ color }) => <FontAwesome name="usd" size={24} color={color} />,
+            }}
+          />
+
+        </Tabs>
+      </ThemeProvider>
     </PaperProvider>
   );
 }

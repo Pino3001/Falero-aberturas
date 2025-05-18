@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import EditScreenInfo from '@/components/EditNuevoPresupuesto';
@@ -6,6 +6,7 @@ import { Text, View } from '@/components/Themed';
 
 export default function TabOneScreen() {
   return (
+    <ScrollView style={{width: '100%'}}>
     <KeyboardAwareScrollView // Para que el textImput no quede oculto por el teclado
       enableOnAndroid={true}
       extraScrollHeight={0}
@@ -21,6 +22,7 @@ export default function TabOneScreen() {
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAwareScrollView>
+    </ScrollView>
   );
 }
 
