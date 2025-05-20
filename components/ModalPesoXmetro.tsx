@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useBD } from '../contexts/BDContext';
 
-interface ModalEditarPesoProps {
+interface ModalPesoXmetroProps {
     visible: boolean;
     hideModal: () => void;
-    perfil: {
-        nombre: string;
-        gramos: number;
-    };
+    serie_id: string;
+    perfil_id: string;
     onSave: (nuevoPeso: number) => void;
 }
 
-const ModalEditarPeso = ({ visible, hideModal, perfil, onSave }: ModalEditarPesoProps) => {
-    const [peso, setPeso] = useState(perfil.gramos.toString());
+const ModalPesoXmetro = ({ visible, hideModal, serie_id, perfil_id, onSave }: ModalPesoXmetroProps) => {
+    const { perfilesSerie, perfiles } = useBD();
+    const perfil = perfilesSerie.find(p => 
+        p.serie_id === serie_id && p.perfil_id === perfil_id
+    );
+    const [peso, setPeso] = useState('');
     const [error, setError] = useState('');
+
+    React.useEffect(() => {
+        if (perfil) {
+            setPeso(perfil.gramos.toString());
+        }
+    }, [perfil]);
 
     const handleSave = () => {
         const nuevoPeso = Number(peso);
@@ -47,10 +55,10 @@ const ModalEditarPeso = ({ visible, hideModal, perfil, onSave }: ModalEditarPeso
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.subtitle}>{perfil.nombre}</Text>
+                        <Text style={styles.subtitle}>{perfiles.find(p => p.perfil_id === perfil_id)?.nombre}</Text>
                         
                         <TextInput
-                            label="Peso en gr/m"
+                            label="Peso"
                             value={peso}
                             onChangeText={(text) => {
                                 setPeso(text);
@@ -69,6 +77,7 @@ const ModalEditarPeso = ({ visible, hideModal, perfil, onSave }: ModalEditarPeso
                                     background: '#2d2d2d',
                                 }
                             }}
+                            right={<TextInput.Affix text="g/m" />}
                         />
                         
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -155,4 +164,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModalEditarPeso; 
+export default ModalPesoXmetro; 

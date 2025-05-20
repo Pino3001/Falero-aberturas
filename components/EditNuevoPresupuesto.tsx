@@ -1,42 +1,39 @@
 import React, { useState } from 'react';
-import { StyleSheet, Image, View } from 'react-native';
-import { TextInput, Button, Menu, List, Card, Text } from 'react-native-paper';
+import { StyleSheet, Image, View, TouchableOpacity } from 'react-native';
+import { TextInput, Button, Menu, List, Card, Text, IconButton } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import VentanaSeleccionada from './VentanaSeleccionada';
 import { Dropdown } from 'react-native-element-dropdown';
-import ModalSerie from './ModalSerie';
-
+import { useBD, SerierOption, ColorOption, CortinaOption } from '../contexts/BDContext';
 const ventanaIcon = require('../assets/images/ventana.png');
 const ventana3HojasIcon = require('../assets/images/ventana con 3 hojas.png');
 const ventanaCortinaIcon = require('../assets/images/ventana con cortina.png');
 
 export type Ventana = {
-  largo: string;
-  label: string;
-  ancho: string;
-  vidrio: boolean;
-  mosquitero: boolean;
-  serie: string;
-  colorAluminio: string;
-  cortina: string;
-  cantidad: string;
+    largo: string;
+    label: string;
+    ancho: string;
+    vidrio: boolean;
+    mosquitero: boolean;
+    serie: SerierOption;
+    colorAluminio: ColorOption;
+    cortina: CortinaOption;
+    cantidad: string;
 };
 
 export default function EditNuevoPresupuesto({ path }: { path: string }) {
   const [mostrarAbertura, setMostrarAbertura] = useState(false);
   const [nombreCliente, setNombreCliente] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [serieSeleccionada, setSerieSeleccionada] = useState('');
 
   const handleNombreChange = (texto: string) => {
     setNombreCliente(texto);
     console.log('Nombre ingresado:', texto); // Opcional: ver en consola
   };
-  const [visible, setVisible] = useState(false);
   const [abertura, setAbertura] = useState('');
   const aberturasCombo = [
-    { label: 'Ventana', value: 'Ventana' },
-    { label: 'Puerta', value: 'Puerta' }
+    { label: 'Ventana', value: '1' },
+    { label: 'Puerta', value: '2' }
   ];
 
   const [aberturas, setAberturas] = useState<Ventana[]>([]);
@@ -47,12 +44,10 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
     setMostrarAbertura(false);
   }
 
-  const showModal = (serie: string) => {
-    setSerieSeleccionada(serie);
-    setModalVisible(true);
+  const handleEliminarAbertura = (index: number) => {
+    const nuevasAberturas = aberturas.filter((_, i) => i !== index);
+    setAberturas(nuevasAberturas);
   };
-
-  const hideModal = () => setModalVisible(false);
 
   return (
     <View style={styles.getStartedContainer}>
@@ -74,15 +69,53 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
             onChangeText={handleNombreChange}
           />
           {
-            aberturas.length > 0 ? ( // lista de aberturas agregadas al presupuesto
+            aberturas.length > 0 ? (
               <View style={styles.listaContainer}>
                 {aberturas.map((ventana, index) => (
                   <List.Item
                     key={index}
                     title={`${ventana.cantidad} ${ventana.label}${Number(ventana.cantidad) > 1 ? 's' : ''} - ${ventana.ancho}cm X ${ventana.largo}cm`}
-                    onPress={() => showModal(ventana.serie)}
                     style={styles.listItem}
                     titleStyle={styles.listItemTitle}
+                    left={() => (
+                      <View style={styles.leftIconContainer}>
+                        <Image
+                          source={
+                            ventana.serie.id === '3'
+                              ? ventana3HojasIcon
+                              : ventana.cortina.tipo !== 'Ninguna'
+                                ? ventanaCortinaIcon
+                                : ventanaIcon
+                          }
+                          style={styles.ventanaIcon}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    )}
+                    right={props => (
+                      <View style={styles.rightIconContainer}>
+                        <TouchableOpacity 
+                          //onPress={() => ()}
+                          style={styles.actionButton}
+                        >
+                          <MaterialCommunityIcons 
+                            name="pencil" 
+                            size={24} 
+                            color="white" 
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => handleEliminarAbertura(index)}
+                          style={styles.actionButton}
+                        >
+                          <MaterialCommunityIcons 
+                            name="delete" 
+                            size={24} 
+                            color="#ff6b6b" 
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   />
                 ))}
               </View>
@@ -130,15 +163,23 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
               </Card.Content>
             </Card>
           </View>
-          {abertura === 'Ventana' && <VentanaSeleccionada handleComfirmarCreacion={handleComfirmarCreacion} />}
+          {abertura === '1' && <VentanaSeleccionada handleComfirmarCreacion={handleComfirmarCreacion} />}
         </>
       )
       }
-      <ModalSerie 
-        visible={modalVisible}
-        hideModal={hideModal}
-        serie={serieSeleccionada}
-      />
+      {aberturas.length > 0 ? (
+        <View style={styles.containerAberturas}>
+          {aberturas.map((ventana, index) => (
+            <View >
+              <Button style={styles.buttonGuardar}>
+                <Text>
+                  Guardar
+                </Text>
+              </Button>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -162,6 +203,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#6200ee', // Color morado de Material Design
     borderRadius: 6,
     width: '90%',
+    alignSelf: 'center',
+  },
+  buttonGuardar: {
+    backgroundColor: '#6200ee',
+    borderRadius: 6,
+    padding: 10,
     alignSelf: 'center',
   },
   label: {
@@ -192,7 +239,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'grey',
   },
   listItem: {
-    paddingVertical: 0,
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     minHeight: 30,
   },
   listaContainer: {
@@ -201,7 +251,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   listItemTitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: 'white',
     fontWeight: '500',
   },
@@ -215,7 +265,6 @@ const styles = StyleSheet.create({
   leftIconContainer: {
     backgroundColor: 'transparent',
     justifyContent: 'center',
-    paddingLeft: 8,
     width: 40,
     height: 40,
     alignItems: 'center'
@@ -231,5 +280,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '95%',
     elevation: 4,
+  },
+  rightIconContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -1,36 +1,31 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ModalEditarPeso from './ModalPesoXmetro';
-import { useBD, Perfiles, PerfilesSerieOption } from '../contexts/BDContext';
+import ModalEditarAccesorio from './ModalEditarAccesorio';
+import { SerieOption, useBD } from '../contexts/BDContext';
 
-interface ModalSerieProps {
+interface ModalAccesoriosSerieProps {
     visible: boolean;
-    hideModal: () => void;
-    serie: string;
+    hideModal: () => void;  
 }
 
-const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
+const ModalAccesoriosSerie = ({ visible, hideModal }: ModalAccesoriosSerieProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [selectedPerfil, setSelectedPerfil] = useState<PerfilesSerieOption & { index: number } | null>(null);
-    const { perfiles, updatePerfilGramos, perfilesSerie } = useBD();
+    const [selectedSerie, setSelectedSerie] = useState<SerieOption | null>(null);
+    const { series, updateSeriePrecio } = useBD();
 
-    const getPerfilesBySerie = () => { // muestra los perfiles de la serie
-        return perfilesSerie.filter(p => p.serie_id === serie);
-    };
-
-    const handleEdit = (index: number) => {
-        const perfilSeleccionado = getPerfilesBySerie()[index];
-        setSelectedPerfil({ ...perfilSeleccionado, index });
+    const handleEdit = (serie: SerieOption) => {
+        setSelectedSerie(serie);
         setEditModalVisible(true);
     };
 
-    const handleSavePeso = (nuevoPeso: number) => {
-        if (selectedPerfil) {
-            updatePerfilGramos(serie, selectedPerfil.perfil_id, nuevoPeso);
+    const handleSavePrecio = (nuevoPrecio: number) => {
+        if (selectedSerie) {
+            updateSeriePrecio(selectedSerie.id, nuevoPrecio);
         }
-    };
+        setEditModalVisible(false);
+      };
 
     return (
         <Portal>
@@ -42,29 +37,29 @@ const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Serie {serie}</Text>
+                        <Text style={styles.title}>Accesorios por Serie</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
                             <MaterialCommunityIcons name="close" size={24} color="white" />
                         </TouchableOpacity>
                     </View>
 
-                    <DataTable style={{ width: '100%' }}>
+                    <DataTable style={styles.table}>
                         <DataTable.Header style={styles.tableHeader}>
-                            <DataTable.Title textStyle={styles.headerText}>Perfil</DataTable.Title>
-                            <DataTable.Title numeric textStyle={styles.headerText}>gr/m</DataTable.Title>
+                            <DataTable.Title textStyle={styles.headerText}>Serie</DataTable.Title>
+                            <DataTable.Title numeric textStyle={styles.headerText}>Costo </DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {getPerfilesBySerie().map((perfil, index) => (
-                            <DataTable.Row key={index} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{perfiles.find(p => p.perfil_id === perfil.perfil_id)?.nombre}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos}</DataTable.Cell>
+                        {series.map((serie) => (
+                            <DataTable.Row key={serie.id} style={styles.row}>
+                                <DataTable.Cell textStyle={styles.cellText}>{serie.nombre}</DataTable.Cell>
+                                <DataTable.Cell numeric textStyle={styles.cellText}>US$ {serie.precio_accesorios}</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
                                         iconColor="white"
                                         size={20}
-                                        onPress={() => handleEdit(index)}
+                                        onPress={() => handleEdit(serie)}
                                         style={styles.editButton}
                                     />
                                 </DataTable.Cell>
@@ -74,13 +69,12 @@ const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
                 </View>
             </Modal>
 
-            {selectedPerfil && (
-                <ModalEditarPeso
+            {selectedSerie && (
+                <ModalEditarAccesorio
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    serie_id={serie}
-                    perfil_id={selectedPerfil.perfil_id}
-                    onSave={handleSavePeso}
+                    serie_id={selectedSerie.id}
+                    onSave={handleSavePrecio}
                 />
             )}
         </Portal>
@@ -92,25 +86,18 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
     },
     containerStyle: {
-        width: '98%',
-        alignSelf: 'center',
         backgroundColor: '#1E1E1E',
         padding: 20,
         margin: 20,
         borderRadius: 8,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
+        alignSelf: 'center',
+        width: '98%',
+        maxWidth: 600,
     },
     content: {
-        width: 350,
+        width: '100%',
         alignSelf: 'center',
-        gap: 15,
+        gap: 20,
     },
     header: {
         flexDirection: 'row',
@@ -122,15 +109,18 @@ const styles = StyleSheet.create({
         fontSize: 24,
         color: 'white',
         fontWeight: 'bold',
-        marginLeft: 20
+        marginLeft: 20,
     },
     closeButton: {
         padding: 5,
     },
+    table: {
+        backgroundColor: '#2d2d2d',
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
     tableHeader: {
         backgroundColor: '#6200ee',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
     },
     headerText: {
         color: 'white',
@@ -143,7 +133,6 @@ const styles = StyleSheet.create({
         borderBottomColor: '#3d3d3d',
     },
     cellText: {
-        textAlign: 'center',
         color: 'white',
         fontSize: 14,
     },
@@ -153,4 +142,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModalSerie; 
+export default ModalAccesoriosSerie; 
