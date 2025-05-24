@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Image, View, TouchableOpacity } from 'react-native';
 import { TextInput, Button, Menu, List, Card, Text, IconButton } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import VentanaSeleccionada from './VentanaSeleccionada';
 import { Dropdown } from 'react-native-element-dropdown';
-import { useBD, SerierOption, ColorOption, CortinaOption } from '../contexts/BDContext';
+import { useBD, SerieOption, ColorOption, CortinaOption } from '../contexts/BDContext';
 const ventanaIcon = require('../assets/images/ventana.png');
 const ventana3HojasIcon = require('../assets/images/ventana con 3 hojas.png');
 const ventanaCortinaIcon = require('../assets/images/ventana con cortina.png');
@@ -16,9 +16,9 @@ export type Ventana = {
     ancho: string;
     vidrio: boolean;
     mosquitero: boolean;
-    serie: SerierOption;
-    colorAluminio: ColorOption;
-    cortina: CortinaOption;
+    serie?: SerieOption;
+    colorAluminio?: ColorOption;
+    cortina?: CortinaOption;
     cantidad: string;
 };
 
@@ -35,6 +35,7 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
     { label: 'Ventana', value: '1' },
     { label: 'Puerta', value: '2' }
   ];
+
 
   const [aberturas, setAberturas] = useState<Ventana[]>([]);
 

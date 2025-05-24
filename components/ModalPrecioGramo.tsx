@@ -1,33 +1,26 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { useBD } from '@/contexts/BDContext';
+import { ColorOption, useBD } from '@/contexts/BDContext';
+import { updatePrecioColor } from '@/app/utils/utilsDB';
 
 interface ModalPrecioGramoProps {
     visible: boolean;
     hideModal: () => void;
-    color_id: string;
-    serie_id: string;
-    onSave: (nuevoPrecio: number) => void;
+    color: ColorOption;
 }
 
-const ModalPrecioGramo = ({ visible, hideModal, color_id, serie_id, onSave }: ModalPrecioGramoProps) => {
-    const { preciosSerieColor, updatePrecioSerieColor, colors } = useBD();
-    const [precio, setPrecio] = useState('');
+const ModalPrecioGramo = ({ visible, hideModal, color }: ModalPrecioGramoProps) => {
+    const [precio, setPrecio] = useState(color.precio.toString());
     const [error, setError] = useState('');
 
-    React.useEffect(() => {
-        const precioActual = preciosSerieColor.find(p => p.color_id === color_id && p.serie_id === serie_id)?.precio_kilo.toString() || '';
-        setPrecio(precioActual);
-    }, [preciosSerieColor, color_id, serie_id]);
-
-    const handleSave = () => {
+    const  handleSave = async () => {
         const nuevoPrecio = Number(precio);
         if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        onSave(nuevoPrecio);
+        await updatePrecioColor({ ...color, precio: nuevoPrecio })
         hideModal();
     };
 
@@ -51,7 +44,7 @@ const ModalPrecioGramo = ({ visible, hideModal, color_id, serie_id, onSave }: Mo
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.subtitle}>{colors.find(c => c.id === color_id)?.color}</Text>
+                        <Text style={styles.subtitle}>{color.color}</Text>
                         
                         <TextInput
                             label="Precio"

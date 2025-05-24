@@ -3,33 +3,27 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalEditarPeso from './ModalPesoXmetro';
-import { useBD, Perfiles, PerfilesSerieOption } from '../contexts/BDContext';
+import { useBD, PerfilesOption, SerieOption } from '../contexts/BDContext';
 
 interface ModalSerieProps {
     visible: boolean;
     hideModal: () => void;
-    serie: string;
+    serie: SerieOption;
+    perfiles: PerfilesOption[];
 }
 
-const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
+const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [selectedPerfil, setSelectedPerfil] = useState<PerfilesSerieOption & { index: number } | null>(null);
-    const { perfiles, updatePerfilGramos, perfilesSerie } = useBD();
+    const [selectedPerfil, setSelectedPerfil] = useState<PerfilesOption | null>(null);
+    
+    const { updatePerfilGramos } = useBD();
 
-    const getPerfilesBySerie = () => { // muestra los perfiles de la serie
-        return perfilesSerie.filter(p => p.serie_id === serie);
-    };
+    
 
     const handleEdit = (index: number) => {
-        const perfilSeleccionado = getPerfilesBySerie()[index];
-        setSelectedPerfil({ ...perfilSeleccionado, index });
+        const perfilSeleccionado = perfiles[index];
+        setSelectedPerfil(perfilSeleccionado);
         setEditModalVisible(true);
-    };
-
-    const handleSavePeso = (nuevoPeso: number) => {
-        if (selectedPerfil) {
-            updatePerfilGramos(serie, selectedPerfil.perfil_id, nuevoPeso);
-        }
     };
 
     return (
@@ -42,7 +36,7 @@ const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Serie {serie}</Text>
+                        <Text style={styles.title}>Serie {serie.nombre}</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
                             <MaterialCommunityIcons name="close" size={24} color="white" />
                         </TouchableOpacity>
@@ -55,10 +49,10 @@ const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {getPerfilesBySerie().map((perfil, index) => (
+                        {perfiles.map((perfil, index) => (
                             <DataTable.Row key={index} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{perfiles.find(p => p.perfil_id === perfil.perfil_id)?.nombre}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos}</DataTable.Cell>
+                                <DataTable.Cell textStyle={styles.cellText}>{perfiles.find(p => p.serie_id === serie.id)?.nombre}</DataTable.Cell>
+                                <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos_por_m}</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
@@ -78,9 +72,7 @@ const ModalSerie = ({ visible, hideModal, serie }: ModalSerieProps) => {
                 <ModalEditarPeso
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    serie_id={serie}
-                    perfil_id={selectedPerfil.perfil_id}
-                    onSave={handleSavePeso}
+                    perfil={selectedPerfil}
                 />
             )}
         </Portal>

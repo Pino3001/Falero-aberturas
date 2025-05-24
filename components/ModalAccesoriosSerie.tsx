@@ -8,24 +8,17 @@ import { SerieOption, useBD } from '../contexts/BDContext';
 interface ModalAccesoriosSerieProps {
     visible: boolean;
     hideModal: () => void;  
+    series?: SerieOption[];
 }
 
-const ModalAccesoriosSerie = ({ visible, hideModal }: ModalAccesoriosSerieProps) => {
+const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSerieProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [selectedSerie, setSelectedSerie] = useState<SerieOption | null>(null);
-    const { series, updateSeriePrecio } = useBD();
 
     const handleEdit = (serie: SerieOption) => {
         setSelectedSerie(serie);
         setEditModalVisible(true);
     };
-
-    const handleSavePrecio = (nuevoPrecio: number) => {
-        if (selectedSerie) {
-            updateSeriePrecio(selectedSerie.id, nuevoPrecio);
-        }
-        setEditModalVisible(false);
-      };
 
     return (
         <Portal>
@@ -50,7 +43,7 @@ const ModalAccesoriosSerie = ({ visible, hideModal }: ModalAccesoriosSerieProps)
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {series.map((serie) => (
+                        {series?.map((serie) => (
                             <DataTable.Row key={serie.id} style={styles.row}>
                                 <DataTable.Cell textStyle={styles.cellText}>{serie.nombre}</DataTable.Cell>
                                 <DataTable.Cell numeric textStyle={styles.cellText}>US$ {serie.precio_accesorios}</DataTable.Cell>
@@ -73,8 +66,7 @@ const ModalAccesoriosSerie = ({ visible, hideModal }: ModalAccesoriosSerieProps)
                 <ModalEditarAccesorio
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    serie_id={selectedSerie.id}
-                    onSave={handleSavePrecio}
+                    serie={selectedSerie}
                 />
             )}
         </Portal>

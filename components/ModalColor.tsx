@@ -3,35 +3,24 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalPrecioGramo from './ModalPrecioGramo';
-import { ColorSerieOption, useBD } from '@/contexts/BDContext';
+import { ColorOption } from '@/contexts/BDContext';
 
 interface ModalColorProps {
     visible: boolean;
     hideModal: () => void;
-    color_id: string;
+    colors: ColorOption[];
 }
 
 
 
-const ModalColor = ({ visible, hideModal, color_id }: ModalColorProps) => {
+const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [selectedAcabado, setSelectedAcabado] = useState<ColorSerieOption & { index: number } | null>(null);
-    const { preciosSerieColor, updatePrecioSerieColor, colors, series } = useBD();
+    const [selectedAcabado, setSelectedAcabado] = useState<ColorOption | null>(null);
     
-    const getPreciosByColor = () => {
-        return preciosSerieColor.filter(p => p.color_id === color_id);
-    };
 
-    const handleEdit = (index: number) => {
-        const acabadoSeleccionado = getPreciosByColor()[index];
-        setSelectedAcabado({...acabadoSeleccionado, index});
+    const handleEdit = (color: ColorOption) => {
+        setSelectedAcabado(color);
         setEditModalVisible(true);
-    };
-
-    const handleSavePrecio = (nuevoPrecio: number) => {
-        if (selectedAcabado) {
-            updatePrecioSerieColor(color_id, selectedAcabado.serie_id, nuevoPrecio);
-        }
     };
 
     return (
@@ -44,7 +33,7 @@ const ModalColor = ({ visible, hideModal, color_id }: ModalColorProps) => {
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Color {colors.find(c => c.id === color_id)?.color}</Text>
+                        <Text style={styles.title}>Colores</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
                             <MaterialCommunityIcons name="close" size={24} color="white" />
                         </TouchableOpacity>
@@ -52,21 +41,21 @@ const ModalColor = ({ visible, hideModal, color_id }: ModalColorProps) => {
                     
                     <DataTable style={{width: '100%'}}>
                         <DataTable.Header style={styles.tableHeader}>
-                            <DataTable.Title textStyle={styles.headerText}>Serie</DataTable.Title>
+                            <DataTable.Title textStyle={styles.headerText}>Color</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Precio/Kg</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {getPreciosByColor().map((acabado, index) => (
-                            <DataTable.Row key={index} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{series.find(s => s.id === acabado.serie_id)?.nombre}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>US${acabado.precio_kilo}</DataTable.Cell>
+                        {colors.map((acabado: ColorOption) => (
+                            <DataTable.Row key={acabado.id} style={styles.row}>
+                                <DataTable.Cell textStyle={styles.cellText}>{acabado.color}</DataTable.Cell>
+                                <DataTable.Cell numeric textStyle={styles.cellText}>US${acabado.precio}</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
                                         iconColor="white"
                                         size={20}
-                                        onPress={() => handleEdit(index)}
+                                        onPress={() => handleEdit(acabado)}
                                         style={styles.editButton}
                                     />
                                 </DataTable.Cell>
@@ -80,9 +69,7 @@ const ModalColor = ({ visible, hideModal, color_id }: ModalColorProps) => {
                 <ModalPrecioGramo
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    color_id={color_id }
-                    serie_id={selectedAcabado.serie_id}
-                    onSave={handleSavePrecio}
+                    color={selectedAcabado }
                 />
             )}
         </Portal>

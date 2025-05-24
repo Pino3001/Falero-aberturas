@@ -1,4 +1,4 @@
-import { useBD } from '@/contexts/BDContext';
+import { PreciosVariosOption, useBD } from '@/contexts/BDContext';
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
@@ -6,7 +6,7 @@ import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native
 interface ModalPrecioM2Props {
     visible: boolean;
     hideModal: () => void;
-    vario_id: string;
+    vario: PreciosVariosOption;
     onSave: (nuevoPrecio: number) => void;
 }
 

@@ -1,30 +1,73 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { View, Text } from './Themed';
 import { Button, Card, Chip, TextInput } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Dropdown } from 'react-native-element-dropdown';
 import { Ventana } from './EditNuevoPresupuesto';
-import { useBD } from '../contexts/BDContext';
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption, useBD } from '../contexts/BDContext';
+import { calcularPrecioVentana } from '@/app/utils/calculosPrecio';
 
 interface VentanaSeleccionadaProps {
     handleComfirmarCreacion: (ventana: Ventana) => void;
 }
-export default function VentanaSeleccionada({ handleComfirmarCreacion }: VentanaSeleccionadaProps) {
-    const { colors } = useBD();
-    const { series } = useBD();
-    const { cortina } = useBD();
-    const [ventana, setVentana] = useState<Ventana>({
-        largo: '',
-        label: 'Ventana',
-        ancho: '',
-        vidrio: true,
-        mosquitero: false,
-        serie: series[0],
-        colorAluminio: colors[0],
-        cortina: cortina[0],
-        cantidad: '1',
+export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
+    const { handleComfirmarCreacion } = props;
+    const [state, setState] = useState<{
+        colors: ColorOption[],
+        series: SerieOption[],
+        cortinas: CortinaOption[],
+        perfiles: PerfilesOption[],
+        preciosVarios: PreciosVariosOption[],
+        ventana: Ventana,
+        cargado: boolean
+    }>({
+        colors: [],
+        series: [],
+        cortinas: [],
+        perfiles: [], preciosVarios: [],
+        cargado: false,
+        ventana: {
+            largo: '',
+            label: 'Ventana',
+            ancho: '',
+            vidrio: true,
+            mosquitero: false,
+            serie: undefined,
+            colorAluminio: undefined,
+            cortina: undefined,
+            cantidad: '1',
+        }
     });
+    const { colors, series, cortinas, perfiles, preciosVarios, ventana } = state;
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const { getColorAluminio, getSeries, getCortinas, getPerfiles, getPreciosVarios } = useBD();
+                const [colors, series, cortinas, perfiles] = await Promise.all([
+                    getColorAluminio(),
+                    getSeries(),
+                    getCortinas(),
+                    getPerfiles(),
+                    getPreciosVarios()
+                ]);
+                setState((prevState) => ({
+                    ...prevState,
+                    colors, series, cortinas, perfiles, preciosVarios, cargado: true,
+                    ventana: {
+                        ...prevState.ventana,
+                        serie: series[0],
+                        colorAluminio: colors[0],
+                        cortina: cortinas[0],
+                    }
+                }));
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        fetchData();
+    }, []);
 
     const [errors, setErrors] = useState({
         largo: false,
@@ -37,8 +80,8 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
         const newErrors = {
             largo: ventana.largo.trim() === '',
             ancho: ventana.ancho.trim() === '',
-            serie: !ventana.serie.id,
-            colorAluminio: !ventana.colorAluminio.id
+            serie: !ventana.serie?.id,
+            colorAluminio: !ventana.colorAluminio?.id
         };
 
         setErrors(newErrors);
@@ -52,17 +95,20 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
     };
 
     const handleReset = () => {
-        setVentana({
-            largo: '',
-            label: 'Ventana',
-            ancho: '',
-            vidrio: true,
-            mosquitero: false,
-            serie: series[0],
-            colorAluminio: colors[0],
-            cortina: cortina[0],
-            cantidad: '1',
-        });
+        setState((prevState) => ({
+            ...prevState,
+            ventana: {
+                largo: '',
+                label: 'Ventana',
+                ancho: '',
+                vidrio: true,
+                mosquitero: false,
+                serie: prevState.series[0],
+                colorAluminio: prevState.colors[0],
+                cortina: prevState.cortinas[0],
+                cantidad: '1',
+            }
+        }));
         setErrors({
             largo: false,
             ancho: false,
@@ -73,11 +119,23 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
 
     const handleAncho = (ancho: string) => {
         const nuevoValor = ancho.replace(/[^0-9.]/g, '');
-        setVentana((prev_ventana) => ({ ...prev_ventana, ancho: nuevoValor }));
+        setState((prevState) => ({
+            ...prevState,
+            ventana: {
+                ...prevState.ventana,
+                ancho: nuevoValor
+            }
+        }));
     };
     const handleLargo = (largo: string) => {
         const nuevoValor = largo.replace(/[^0-9.]/g, '');
-        setVentana((prev_ventana) => ({ ...prev_ventana, largo: nuevoValor }));
+        setState((prevState) => ({
+            ...prevState,
+            ventana: {
+                ...prevState.ventana,
+                largo: nuevoValor
+            }
+        }));
     };
     return (
         <Card style={styles.card}>
@@ -91,7 +149,7 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 label='Largo *'
                                 mode="outlined"
                                 error={errors.largo}
-                                style={{ height: 40, width: '42%', backgroundColor: '#121212', fontSize: 14,}}
+                                style={{ height: 40, width: '42%', backgroundColor: '#121212', fontSize: 14, }}
                                 keyboardType="numeric"
                                 right={<TextInput.Affix text="cm" />}
                                 maxLength={3}
@@ -117,7 +175,7 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 mode="outlined"
                                 error={errors.ancho}
                                 maxLength={3}
-                                style={{ height: 40, width: '42%', backgroundColor: '#121212', fontSize: 14}}
+                                style={{ height: 40, width: '42%', backgroundColor: '#121212', fontSize: 14 }}
                                 outlineStyle={{ borderWidth: 1.5, height: 40 }}
                                 right={<TextInput.Affix text="cm" />}
                                 showSoftInputOnFocus={true}
@@ -130,15 +188,17 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                         placeholder: errors.ancho ? '#ff0000' : 'white',
                                         text: errors.ancho ? '#ff0000' : 'white',
                                         outline: errors.ancho ? '#ff0000' : '#757575',
-                                  
+
                                     }
                                 }}
                             />
                         </View>
                     </View>
 
-                    <View style={{ flexDirection: 'row', justifyContent: "space-between", 
-                        width: "100%", alignItems: "center", backgroundColor: 'transparent' }}>
+                    <View style={{
+                        flexDirection: 'row', justifyContent: "space-between",
+                        width: "100%", alignItems: "center", backgroundColor: 'transparent'
+                    }}>
                         <Text>Serie</Text>
                         <View style={{ width: "70%" }}>
                             <Dropdown
@@ -147,7 +207,12 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 valueField="id"
                                 style={[styles.outputMaterial, errors.serie && styles.dropdownError]}
                                 onChange={(item) => {
-                                    setVentana((prevVentanta) => ({ ...prevVentanta, serie: item }));
+                                    setState((prevState) => ({
+                                        ...prevState, ventana: {
+                                            ...prevState.ventana,
+                                            serie: item
+                                        }
+                                    }));
                                     setErrors(prev => ({ ...prev, serie: false }));
                                 }}
                                 value={ventana.serie}
@@ -172,7 +237,12 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 valueField="id"
                                 style={[styles.outputMaterial, errors.colorAluminio && styles.dropdownError]}
                                 onChange={(item) => {
-                                    setVentana((prevVentanta) => ({ ...prevVentanta, colorAluminio: item }));
+                                    setState((prevState) => ({
+                                        ...prevState, ventana: {
+                                            ...prevState.ventana,
+                                            colorAluminio: item
+                                        }
+                                    }));
                                     setErrors(prev => ({ ...prev, colorAluminio: false }));
                                 }}
                                 value={ventana.colorAluminio}
@@ -191,7 +261,7 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                         <Text>Cortina</Text>
                         <View style={{ width: "70%" }}>
                             <Dropdown
-                                data={cortina}
+                                data={cortinas}
                                 labelField="tipo"
                                 valueField="id"
                                 style={styles.outputMaterial}
@@ -199,7 +269,13 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 containerStyle={{ backgroundColor: '#121212' }}
                                 activeColor="#6200ee"
                                 itemTextStyle={{ color: 'white' }}
-                                onChange={(item) => setVentana((prevVentanta) => ({ ...prevVentanta, cortina: item }))}
+                                onChange={(item) =>
+                                    setState((prevState) => ({
+                                        ...prevState, ventana: {
+                                            ...prevState.ventana,
+                                            cortina: item
+                                        }
+                                    }))}
                                 value={ventana.cortina}
                                 placeholder=" Selecciona la cortina"
                                 placeholderStyle={{ color: 'white' }}
@@ -215,7 +291,13 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                         }}>
                             <Chip
                                 icon={ventana.mosquitero ? "check" : "close"}
-                                onPress={() => setVentana((prevVentanta) => ({ ...prevVentanta, mosquitero: !prevVentanta.mosquitero }))}
+                                onPress={() =>
+                                    setState((prevState) => ({
+                                        ...prevState, ventana: {
+                                            ...prevState.ventana,
+                                            mosquitero: !prevState.ventana.mosquitero
+                                        }
+                                    }))}
                                 style={{
                                     borderRadius: 16,
                                     backgroundColor: ventana.mosquitero ? '#6200ee' : 'grey',
@@ -231,7 +313,13 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                         }}>
                             <Chip
                                 icon={ventana.vidrio ? "check" : "close"}
-                                onPress={() => setVentana((prevVentanta) => ({ ...prevVentanta, vidrio: !prevVentanta.vidrio }))}
+                                onPress={() =>
+                                    setState((prevState) => ({
+                                        ...prevState, ventana: {
+                                            ...prevState.ventana,
+                                            vidrio: !prevState.ventana.vidrio
+                                        }
+                                    }))}
                                 style={{
                                     borderRadius: 16,
                                     backgroundColor: ventana.vidrio ? '#6200ee' : 'grey',
@@ -249,7 +337,12 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 value={ventana.cantidad}
                                 onChangeText={(text) => {
                                     const newText = text.replace(/[^0-9]/g, '');
-                                    setVentana((prevVentanta) => ({ ...prevVentanta, cantidad: newText }))
+                                    setState((prevState) => ({
+                                        ...prevState, ventana: {
+                                            ...prevState.ventana,
+                                            cantidad: newText
+                                        }
+                                    }))
                                 }}
                                 keyboardType="numeric"
                                 mode="outlined"
@@ -280,9 +373,15 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                         )}
                                         onPress={() => {
                                             if (Number(ventana.cantidad) < 100) {
-                                                setVentana((prevVentanta) => ({ ...prevVentanta, cantidad: String(Number(prevVentanta.cantidad) + 1) }))
+                                                setState((prevState) => ({
+                                                    ...prevState, ventana: {
+                                                        ...prevState.ventana,
+                                                        cantidad: String(Number(prevState.ventana.cantidad) + 1)
+                                                    }
+                                                }))
                                             }
-                                        }}
+                                        }
+                                        }
                                         disabled={Number(ventana.cantidad) >= 100}
                                     />
                                 }
@@ -297,7 +396,12 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                         )}
                                         onPress={() => {
                                             if (Number(ventana.cantidad) > 0) {
-                                                setVentana((prevVentanta) => ({ ...prevVentanta, cantidad: String(Math.max(0, Number(prevVentanta.cantidad) - 1)) }))
+                                                setState((prevState) => ({
+                                                    ...prevState, ventana: {
+                                                        ...prevState.ventana,
+                                                        cantidad: String(Math.max(0, Number(prevState.ventana.cantidad) - 1))
+                                                    }
+                                                }));
                                             }
                                         }}
                                         disabled={Number(ventana.cantidad) === 1}
@@ -305,10 +409,52 @@ export default function VentanaSeleccionada({ handleComfirmarCreacion }: Ventana
                                 }
                                 editable={false}
                             />
-                            <Card style={{ width: '40%', height: 40, marginLeft: 6, backgroundColor: '#121212', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Text style={{ color: 'red', fontSize: 8 }}>Precio estimado</Text>
-                                    <Text style={{ color: 'white', fontSize: 12, alignSelf: 'center' }}>{ventana.serie.precio_accesorios}</Text>
-                            </Card>
+                            {
+                                (() => {
+                                    try {
+                                        const ancho = Number(ventana.ancho);
+                                        const largo = Number(ventana.largo);
+                                        const cantidad = Number(ventana.cantidad);
+                                        console.log('serie en el card', ventana.serie?.id);
+                                        // Validación explícita
+                                        if (ancho > 0 && largo > 0 && cantidad > 0 && !isNaN(ancho) && !isNaN(largo) && !isNaN(cantidad)) {
+                                            console.log('esto hay en series', series);
+
+                                            return (
+                                                <Card style={{
+                                                    width: '40%',
+                                                    height: 40,
+                                                    marginLeft: 6,
+                                                    backgroundColor: '#121212',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}>
+                                                    <Text style={{ color: 'red', fontSize: 8 }}>Precio estimado</Text>
+                                                    <Text style={{ color: 'white', fontSize: 12, alignSelf: 'center' }}>
+{/*                                                         {calcularPrecioVentana(
+                                                            {
+                                                                anchoV: ancho,
+                                                                altoV: largo,
+                                                                serie: Number(ventana.serie?.id),
+                                                                color: Number(ventana.colorAluminio?.id),
+                                                                vidrio: ventana.vidrio,
+                                                                mosquitero: ventana.mosquitero
+                                                            },
+                                                            perfiles,
+                                                            series,
+                                                            preciosVarios
+                                                        ).toFixed(2)} */}
+                                                    </Text>
+                                                </Card>
+                                            );
+                                        }
+                                        return null;
+                                    } catch (error) {
+                                        console.error("Error al calcular precio:", error);
+                                        return null;
+                                    }
+                                })()
+                            }
                         </View>
 
                     </View>
@@ -394,5 +540,5 @@ const styles = StyleSheet.create({
         width: '95%',
         elevation: 4,
         marginBottom: 10,
-      },
+    },
 });

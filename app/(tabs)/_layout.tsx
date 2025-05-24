@@ -57,7 +57,7 @@ export default function TabLayout() {
             }}
           />
           <Tabs.Screen
-            name="three"
+            name="presupuestos"
             options={{
               title: 'Lista Presupuestos',
               tabBarIcon: ({ color }) => <FontAwesome name="list-ol" size={24} color={color} />,

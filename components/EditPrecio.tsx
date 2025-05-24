@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Button, Card, List, TextInput, Text, Switch, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,7 +6,9 @@ import ModalSerie from './ModalSerie';
 import ModalColor from './ModalColor';
 import ModalPrecioM2 from './ModalPrecioM2';
 import ModalAccesoriosSerie from './ModalAccesoriosSerie';
-import { PreciosVarios, useBD } from '../contexts/BDContext';
+import { ColorOption, PerfilesOption, PreciosVariosOption, SerieOption, useBD } from '../contexts/BDContext';
+import { getPerfiles, updatePrecioVarios } from '@/app/utils/utilsDB';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 interface EditPrecioProps {
     precio: string;
@@ -14,57 +16,81 @@ interface EditPrecioProps {
     mapAberturas?: Map<string, any>;
 }
 
-
-
 export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: EditPrecioProps) {
-    const { series, colors, preciosVarios, updatePrecioVarios } = useBD();
-    const [modalVisible, setModalVisible] = useState(false);
-    const [serieSeleccionada, setSerieSeleccionada] = useState('');
-    const [colorModalVisible, setColorModalVisible] = useState(false);
-    const [selectedColor, setSelectedColor] = useState('');
-    const [m2ModalVisible, setM2ModalVisible] = useState(false);
-    const [preciosM2, setPreciosM2] = useState<PreciosVarios & { index: number } | null>(null);
-    const [accesoriosModalVisible, setAccesoriosModalVisible] = useState(false);
+    const [modal, setModal] = useState<{
+        visible: boolean;
+        tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios';
+        objeto?: SerieOption | ColorOption | PreciosVariosOption | SerieOption[];
+        extradata?: { perfiles: PerfilesOption[] };
+    }
+    >({
+        visible: false,
+        tipo: undefined,
+        objeto: undefined,
+        extradata: undefined,
+    });
     const [isEditing, setIsEditing] = useState(false);
-    const [manoObra, setManoObra] = useState(preciosVarios.find(p => p.id === '1')?.precio.toString() || '0');
 
 
-    const handleSerieChange = useCallback((serie: string) => {
-        onPrecioChange(`serie_${serie.toLowerCase()}`);
-    }, [onPrecioChange]);
 
-    const handleColorPress = useCallback((color: string) => {
-        setSelectedColor(color);
-        setColorModalVisible(true);
+    const [state, setState] = useState<{
+        colors: ColorOption[],
+        series: SerieOption[],
+        preciosVarios: PreciosVariosOption[],
+        perfiles: PerfilesOption[],
+        cargado: boolean
+    }>({
+        colors: [],
+        series: [],
+        preciosVarios: [],
+        perfiles: [],
+        cargado: false,
+    });
+
+    const { colors, series, preciosVarios, perfiles } = state;
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const { getColorAluminio, getSeries, getPreciosVarios, updatePrecioVarios } = useBD();
+                const [colors, series, preciosVarios, perfiles] = await Promise.all([
+                    getColorAluminio(),
+                    getSeries(),
+                    getPreciosVarios(),
+                    getPerfiles(),
+                ]);
+                setState((prevState) => ({
+                    ...prevState,
+                    colors, series, preciosVarios,
+                    perfiles,
+                    cargado: true,
+                }));
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        fetchData();
     }, []);
 
-    const getPreciosVarios = () => {
-        return preciosVarios.filter(p => p.id === '1' || p.id === '2' || p.id === '3');
-    };
 
-    const handleM2ItemPress = useCallback((index: number) => {
-        const vario = getPreciosVarios()[index];
-        setPreciosM2({ ...vario, index });
-        setM2ModalVisible(true);
-    }, [preciosM2]);
 
     const handleSaveM2Price = useCallback((nuevoPrecio: number) => {
         if (preciosM2) {
-            updatePrecioVarios(preciosM2.id, nuevoPrecio);
+            updatePrecioVarios(preciosM2.id,);
         }
     }, [preciosM2]);
 
     const handleEditToggle = useCallback(() => {
         if (isEditing) {
-          const precioNumerico = parseFloat(manoObra) || 0;
-          updatePrecioVarios('1', precioNumerico);
+            const precioNumerico = parseFloat(manoObra) || 0;
+            updatePrecioVarios('1', precioNumerico);
         } else {
-          // Al entrar en modo edición, sincroniza con los últimos datos
-          const nuevoValor = preciosVarios.find(p => p.id === '1')?.precio.toString() || '0';
-          setManoObra(nuevoValor);
+            // Al entrar en modo edición, sincroniza con los últimos datos
+            const nuevoValor = preciosVarios.find(p => p.id === '1')?.precio.toString() || '0';
+            setManoObra(nuevoValor);
         }
         setIsEditing(!isEditing);
-      }, [isEditing, manoObra, preciosVarios, updatePrecioVarios]);
+    }, [isEditing, manoObra, preciosVarios, updatePrecioVarios]);
 
     const handleSave = useCallback(() => {
         const data = {
@@ -91,35 +117,19 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                                 key={serie.id}
                                 title={serie.nombre}
                                 onPress={() => {
-                                    setSerieSeleccionada(serie.id);
-                                    setModalVisible(true);
-                                    handleSerieChange(serie.id);
+                                    setModal({ visible: true, tipo: 'serie', objeto: serie, extradata: { perfiles: perfiles.filter(p => p.serie_id === serie.id) } });
                                 }}
                                 style={styles.item}
                                 titleStyle={styles.itemTitle}
                             />
                         ))}
                     </List.Accordion>
-                    <List.Accordion
-                        title="Colores"
-                        left={props => <List.Icon {...props} icon="palette" />}
+                    <Button
                         style={styles.accordion}
-                        titleStyle={styles.accordionTitle}
-                    >
-                        {colors.map((color) => (
-                            <List.Item
-                                key={color.id}
-                                title={color.color}
-                                onPress={() => {
-                                    setSelectedColor(color.id);
-                                    setColorModalVisible(true);
-                                    handleColorPress(color.id);
-                                }}
-                                style={styles.item}
-                                titleStyle={styles.itemTitle}
-                            />
-                        ))}
-                    </List.Accordion>
+                        onPress={() => {
+                            setModal({ visible: true, tipo: 'color', extradata: undefined });
+                        }}
+                    >Colores </Button>
                 </Card.Content>
             </Card>
 
@@ -133,23 +143,23 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                         titleStyle={styles.accordionTitle}
                         left={props => <List.Icon {...props} icon="tools" color="white" />}
                     >
+                        {preciosVarios.map((varios) => (
+                            <List.Item
+                                key={varios.id}
+                                title={varios.nombre}
+                                onPress={() => {
+                                    setModal(
+                                        { visible: true, tipo: 'preciosVarios', objeto: varios, extradata: undefined }
+                                    )
+                                }}
+                                style={styles.item}
+                                titleStyle={styles.itemTitle}
+                            />
+                        ))}
                         <List.Item
-                            title="Vidrio"
-                            onPress={() => 
-                                handleM2ItemPress(1)}
-                            style={styles.item}
-                            titleStyle={styles.itemTitle}
-                        />
-                        <List.Item
-                            title="Mosquitero"
-                            onPress={() => 
-                                handleM2ItemPress(2)}
-                            style={styles.item}
-                            titleStyle={styles.itemTitle}
-                        />
-                        <List.Item
+                            key="accesorios"
                             title="Accesorios"
-                            onPress={() => setAccesoriosModalVisible(true)}
+                            onPress={() => setModal({ visible: true, tipo: 'accesorios', objeto: series, extradata: undefined })}
                             style={styles.item}
                             titleStyle={styles.itemTitle}
                         />
@@ -165,9 +175,10 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                         <View style={styles.inputContainer}>
                             <TextInput
                                 mode="outlined"
-                                value={manoObra}
-                                onChangeText={(text) => {if (/^\d*\.?\d*$/.test(text) || text === '') 
-                                    setManoObra(text);
+                                value={preciosVarios.find(p => p.nombre === 'Mano de Obra')?.precio.toString() || ''}
+                                onChangeText={(text) => {
+                                    if (/^\d*\.?\d*$/.test(text) || text === '')
+                                        setManoObra(text);
                                 }}
                                 style={[
                                     styles.input,
@@ -175,8 +186,8 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                                 ]}
                                 contentStyle={styles.inputContent}
                                 right={<TextInput.Affix text="US$" />}
-                                theme={{ 
-                                    colors: { 
+                                theme={{
+                                    colors: {
                                         text: 'white',
                                         primary: 'white',
                                         onSurfaceVariant: 'white',
@@ -191,46 +202,52 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                                 editable={isEditing}
                                 selectionColor="rgba(255, 255, 255, 0.3)"
                             />
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={[
                                     styles.editButton,
                                     isEditing && styles.editButtonActive
                                 ]}
                                 onPress={handleEditToggle}
                             >
-                                <MaterialCommunityIcons 
-                                    name={isEditing ? "check" : "pencil"} 
-                                    size={24} 
-                                    color="white" 
+                                <MaterialCommunityIcons
+                                    name={isEditing ? "check" : "pencil"}
+                                    size={24}
+                                    color="white"
                                 />
                             </TouchableOpacity>
                         </View>
                     </View>
                 </Card.Content>
             </Card>
+            {
+                modal && modal.visible && (<>
+                    <ModalSerie
+                        visible={modal.tipo === 'serie'}
+                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        serie={modal.objeto as SerieOption}
+                        perfiles={modal.extradata?.perfiles as PerfilesOption[]}
+                    />
+                    <ModalColor
+                        visible={modal.tipo === 'color'}
+                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        color={colors}
+                    />
 
-            <ModalSerie 
-                visible={modalVisible}
-                hideModal={() => setModalVisible(false)}
-                serie={serieSeleccionada}
-            />
-            <ModalColor
-                visible={colorModalVisible}
-                hideModal={() => setColorModalVisible(false)}
-                color_id={selectedColor}
-            />
-            {preciosM2 && (
-                <ModalPrecioM2
-                    visible={m2ModalVisible}
-                    hideModal={() => setM2ModalVisible(false)}
-                    vario_id={preciosM2.id}
-                    onSave={handleSaveM2Price}
-                />
-            )}
-            <ModalAccesoriosSerie
-                visible={accesoriosModalVisible}
-                hideModal={() => setAccesoriosModalVisible(false)}
-            />
+                    <ModalPrecioM2
+                        visible={modal.tipo === 'preciosVarios'}
+                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        vario={modal.objeto as PreciosVariosOption}
+                        onSave={handleSaveM2Price}
+                    />
+
+                    <ModalAccesoriosSerie
+                        visible={modal.tipo === 'accesorios'}
+                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        series={modal.objeto as SerieOption[]}
+                    />
+                </>
+                )
+            }
 
             {mapAberturas && mapAberturas.size > 0 && (
                 <View style={styles.saveButtonContainer}>

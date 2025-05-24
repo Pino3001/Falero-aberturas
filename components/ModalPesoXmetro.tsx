@@ -1,27 +1,23 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { useBD } from '../contexts/BDContext';
+import { PerfilesOption, useBD } from '../contexts/BDContext';
+import { updatePerfilGramos } from '@/app/utils/utilsDB';
 
 interface ModalPesoXmetroProps {
     visible: boolean;
     hideModal: () => void;
-    serie_id: string;
-    perfil_id: string;
-    onSave: (nuevoPeso: number) => void;
+    //serie_id: string;
+    perfil: PerfilesOption;
 }
 
-const ModalPesoXmetro = ({ visible, hideModal, serie_id, perfil_id, onSave }: ModalPesoXmetroProps) => {
-    const { perfilesSerie, perfiles } = useBD();
-    const perfil = perfilesSerie.find(p => 
-        p.serie_id === serie_id && p.perfil_id === perfil_id
-    );
+const ModalPesoXmetro = ({ visible, hideModal, perfil }: ModalPesoXmetroProps) => {
     const [peso, setPeso] = useState('');
     const [error, setError] = useState('');
 
     React.useEffect(() => {
         if (perfil) {
-            setPeso(perfil.gramos.toString());
+            setPeso(perfil.gramos_por_m.toString());
         }
     }, [perfil]);
 
@@ -31,7 +27,7 @@ const ModalPesoXmetro = ({ visible, hideModal, serie_id, perfil_id, onSave }: Mo
             setError('Por favor, ingrese un peso válido');
             return;
         }
-        onSave(nuevoPeso);
+        updatePerfilGramos({ ...perfil, gramos_por_m: nuevoPeso })
         hideModal();
     };
 
@@ -55,7 +51,7 @@ const ModalPesoXmetro = ({ visible, hideModal, serie_id, perfil_id, onSave }: Mo
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.subtitle}>{perfiles.find(p => p.perfil_id === perfil_id)?.nombre}</Text>
+                        <Text style={styles.subtitle}>{perfil?.nombre}</Text>
                         
                         <TextInput
                             label="Peso"

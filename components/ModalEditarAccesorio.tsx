@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { useBD } from '../contexts/BDContext';
+import { SerieOption, useBD } from '../contexts/BDContext';
+import { updateAccesorioPrecio } from '@/app/utils/utilsDB';
 
 interface ModalEditarAccesorioProps {
     visible: boolean;
     hideModal: () => void;
-    serie_id: string;
+    serie: SerieOption;
     onSave: (nuevoPrecio: number) => void;
 }
 
-const ModalEditarAccesorio = ({ visible, hideModal, serie_id, onSave }: ModalEditarAccesorioProps) => {
-    const { series } = useBD();
-    const serie = series.find(s => s.id === serie_id);
+const ModalEditarAccesorio = ({ visible, hideModal, serie , onSave }: ModalEditarAccesorioProps) => {
     const [precio, setPrecio] = useState('');
     const [error, setError] = useState('');
 
     React.useEffect(() => {
         if (serie) {
-            setPrecio(serie.precio_accesorios.toString());
+            setPrecio(serie.precio_accesorios.toFixed(2).toString());
         }
     }, [serie]);
 
@@ -28,7 +27,7 @@ const ModalEditarAccesorio = ({ visible, hideModal, serie_id, onSave }: ModalEdi
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        onSave(nuevoPrecio);
+        updateAccesorioPrecio({ ...serie, precio_accesorios: nuevoPrecio })
         hideModal();
     };
 
