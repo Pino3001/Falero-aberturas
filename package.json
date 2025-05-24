@@ -28,6 +28,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-draggable": "^3.3.0",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-numeric-input": "^1.9.1",

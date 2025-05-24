@@ -1,4 +1,5 @@
 import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from '@/contexts/BDContext';
+import { parse } from '@babel/core';
 import * as SQLite from 'expo-sqlite';
 const db = SQLite.openDatabaseSync('falero.db');
 console.log('Database opened:', db);
@@ -35,7 +36,7 @@ const serieData: SerieOption[] = [
 ];
 
 const cortinaData: CortinaOption[] = [
-    { tipo: 'Ninguna', id: -1, preciom2: 20 },
+    { tipo: 'Ninguna', id: -1, preciom2: null },
     { tipo: 'Cortina pvc H25', id: -1, preciom2: 87 },
     { tipo: 'Cortina panel aluminio H25', id: -1, preciom2: 43 },
     { tipo: 'Monoblock en pvc', id: -1, preciom2: 110 },
@@ -52,14 +53,10 @@ const perfilesData: PerfilesOption[] = [
     { id: -1, nombre: 'Hoja Superior', serie_id: 2, gramos_por_m: 492 },
     { id: -1, nombre: 'Hoja inferior', serie_id: 2, gramos_por_m: 666 },
     { id: -1, nombre: 'Hoja lateral', serie_id: 2, gramos_por_m: 580 },
-    { id: -1, nombre: 'Hoja enganche c', serie_id: 2, gramos_por_m: 557 },
-    { id: -1, nombre: 'Marco superior', serie_id: 2, gramos_por_m: 1463 },
-    { id: -1, nombre: 'Marco inferior', serie_id: 2, gramos_por_m: 1364 },
-    { id: -1, nombre: 'Marco lateral', serie_id: 2, gramos_por_m: 1528 },
-    { id: -1, nombre: 'Hoja Superior', serie_id: 2, gramos_por_m: 492 },
-    { id: -1, nombre: 'Hoja inferior', serie_id: 2, gramos_por_m: 666 },
-    { id: -1, nombre: 'Hoja lateral', serie_id: 2, gramos_por_m: 580 },
-    { id: -1, nombre: 'Hoja enganche c', serie_id: 2, gramos_por_m: 557 },
+    { id: -1, nombre: 'Hoja enganche central', serie_id: 2, gramos_por_m: 557 },
+    { id: -1, nombre: 'Marco superior', serie_id: 3, gramos_por_m: 1463 },
+    { id: -1, nombre: 'Marco inferior', serie_id: 3, gramos_por_m: 1364 },
+    { id: -1, nombre: 'Marco lateral', serie_id: 3, gramos_por_m: 1528 },
 ];
 
 
@@ -78,12 +75,14 @@ export async function initializeSeriesTable() {
         // Crear la tabla si no existe
         await db.execAsync(`
         CREATE TABLE IF NOT EXISTS ${series} (
-            id TEXT PRIMARY KEY NOT NULL,
+            id INTEGER PRIMARY KEY NOT NULL,
             nombre TEXT NOT NULL,
             precio_accesorios REAL NOT NULL DEFAULT 0,
-            FOREIGN KEY (serie_id_hereda) REFERENCES ${series} (id) NULL,  
+            serie_id_hereda REAL,
+            FOREIGN KEY (serie_id_hereda) REFERENCES ${series} (id)  
       );
     `);
+        console.log('Tabla series creada o ya existe');
 
         // Verificar si la tabla está vacía
         const resultSeries = await db.getFirstAsync<{ count: number }>(
@@ -113,24 +112,25 @@ export async function initializeSeriesTable() {
         } */
 
         await db.execAsync(`
-        ÇREATE  TABLE IF NOT EXIST ${coloresAluminio} (
-            id TEXT PRIMARY KEY NOT NULL,
-            nombreColor TEXT NOT NULL,
-            precioKilo REAL NOT NULL,
+        CREATE TABLE IF NOT EXISTS ${coloresAluminio} (
+            id INTEGER PRIMARY KEY NOT NULL,
+            color TEXT NOT NULL,
+            precio REAL NOT NULL
         );
        `);
-
+        console.log('Tabla coloresAluminio creada o ya existe');
         // Verificar si la tabla está vacía
         const resultColores = await db.getFirstAsync<{ count: number }>(
             `SELECT COUNT(*) as count FROM ${coloresAluminio}`
         );
+        console.log('resultColores', resultColores);
         // Maneja los null
         const countColores = resultColores ? resultColores.count : 0;
         // Insertar datos iniciales si la tabla está vacía
         if (countColores === 0) {
             colorData.map((color: ColorOption) => {
                 db.runSync(`
-                            INSERT INTO ${coloresAluminio} (nombreColor, precioKilo) VALUES 
+                            INSERT INTO ${coloresAluminio} (color, precio) VALUES 
                             (?, ?);
                         `, [color.color, color.precio]);
             });
@@ -148,10 +148,10 @@ export async function initializeSeriesTable() {
          */
 
         await db.execAsync(`
-        CREATE TABLE IF NOT EXIST ${cortinas} (
-            id TEXT PRIMARY KEY NOT NULL,
+        CREATE TABLE IF NOT EXISTS ${cortinas} (
+            id INTEGER PRIMARY KEY NOT NULL,
             tipo TEXT NOT NULL,
-            precio_m2 REAL NOT NULL,
+            preciom2 REAL
         );
         `);
 
@@ -159,15 +159,16 @@ export async function initializeSeriesTable() {
         const resultCortinas = await db.getFirstAsync<{ count: number }>(
             `SELECT COUNT(*) as count FROM ${cortinas}`
         );
+        console.log('resultCortinas', resultCortinas);
         // Maneja los null
         const countCortinas = resultCortinas ? resultCortinas.count : 0;
         // Insertar datos iniciales si la tabla está vacía
         if (countCortinas === 0) {
-            cortinaData.map((cortinas: CortinaOption) => {
+            cortinaData.map((cortina: CortinaOption) => {
                 db.runSync(`
-                            INSERT INTO ${cortinas} (nombreColor, precioKilo) VALUES 
+                            INSERT INTO ${cortinas} (tipo, preciom2) VALUES 
                             (?, ?);
-                        `, [cortinas.tipo, cortinas.preciom2]);
+                        `, [cortina.tipo, cortina.preciom2]);
             });
         } else {
             console.log("ya tengo al menos una serie");
@@ -183,11 +184,12 @@ export async function initializeSeriesTable() {
         } */
 
         await db.execAsync(`
-        CREATE TABLE IF NOT EXIST ${perfiles} (
-            id TEXT PRIMARY KEY NOT NULL,
+        CREATE TABLE IF NOT EXISTS ${perfiles} (
+            id INTEGER PRIMARY KEY NOT NULL,
             nombre TEXT NOT NULL,
-            FOREIGN KEY (serie_id) REFERENCES ${series} (id) NOT NULL,
+            serie_id INTEGER NOT NULL,
             gramos_por_m REAL NOT NULL,
+            FOREIGN KEY (serie_id) REFERENCES ${series} (id)
         );
         `)
 
@@ -197,13 +199,15 @@ export async function initializeSeriesTable() {
         );
         // Maneja los null
         const countPerfiles = resultPerfiles ? resultPerfiles.count : 0;
+
+        console.log('resultPerfiles', resultPerfiles);
         // Insertar datos iniciales si la tabla está vacía
         if (countPerfiles === 0) {
-            perfilesData.map((perfiles: PerfilesOption) => {
+            perfilesData.map((perfil: PerfilesOption) => {
                 db.runSync(`
-                            INSERT INTO ${perfiles} (nombreColor, serie_id, precioKilo) VALUES 
+                            INSERT INTO ${perfiles} (nombre, serie_id, gramos_por_m) VALUES 
                             (?, ?, ?);
-                        `, [perfiles.nombre, perfiles.serie_id, perfiles.gramos_por_m]);
+                        `, [perfil.nombre, perfil.serie_id, perfil.gramos_por_m]);
             });
         } else {
             console.log("ya tengo al menos una serie");
@@ -219,16 +223,18 @@ export async function initializeSeriesTable() {
         */
 
         await db.execAsync(`
-        CREATE TABLE IF NOT EXIST ${preciosVarios} (
-            id TEXT PRIMARY KEY NOT NULL,
+        CREATE TABLE IF NOT EXISTS ${preciosVarios} (
+            id INTEGER PRIMARY KEY NOT NULL,
             nombre TEXT NOT NULL,
-            precio REAL NOT NULL,
+            precio REAL NOT NULL
         );
         `)
         // Verificar si la tabla está vacía
         const resultPreciosVarios = await db.getFirstAsync<{ count: number }>(
-            `SELECT COUNT(*) as count FROM ${perfiles}`
+            `SELECT COUNT(*) as count FROM ${preciosVarios}`
         );
+
+        console.log('resultPreciosVarios', resultPreciosVarios);
         // Maneja los null
         const countPereciosVarios = resultPreciosVarios ? resultPreciosVarios.count : 0;
         // Insertar datos iniciales si la tabla está vacía
@@ -248,26 +254,6 @@ export async function initializeSeriesTable() {
         throw error;
     }
 
-}
-
-
-export async function precioperfil(perfil_nombre: string, serie_id: number): Promise<number> {
-    const { perfiles, series } = Tablas;
-    let result = await db.getFirstAsync<{ gramos_m2: number }>(
-        `SELECT gramos_m2 FROM ${perfiles} WHERE nombre = ? AND serie_id = ? `
-        , [perfil_nombre, serie_id]);
-    if (result) {
-        return result.gramos_m2;
-    }
-    else {
-        result = await db.getFirstAsync<{ gramos_m2: number }>(
-            `SELECT p.gramos_m2 FROM ${perfiles} p JOIN ${series} s on p.serie_id = s.serie_id_hereda where nombre= ? AND s.id = ? `
-            , [perfil_nombre, serie_id]);
-        if (result) {
-            return result.gramos_m2;
-        }
-        return -1;
-    }
 }
 
 export async function getSeries(): Promise<SerieOption[]> {
@@ -352,3 +338,188 @@ export const updatePrecioVarios = async (objeto: PreciosVariosOption) => {
             WHERE id = ?;
         `, [objeto.precio, objeto.id]);
 };
+
+async function calcularPrecioVidrio(
+    altoV: number,
+    anchoV: number,
+): Promise<number> {
+    const { preciosVarios } = Tablas;
+    try {
+        const vidrio = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${preciosVarios} WHERE nombre = 'Vidrio'`);
+
+        // Manejar el caso donde vidrio o vidrio.precio es undefined
+        const precioUnitario = vidrio?.precio ?? 0;
+
+        const areaVidrio = (altoV * anchoV) / 10000;
+        const precioTotalVidrio = areaVidrio * precioUnitario;
+
+        // Verificar si es NaN antes de usar toFixed
+        if (isNaN(precioTotalVidrio)) {
+            return 0;
+        }
+
+        return parseFloat(precioTotalVidrio.toFixed(2));
+    } catch (error) {
+        console.error('Error al calcular precio del vidrio:', error);
+        return 0;
+    }
+}
+
+async function calcularPrecioMosquitero(
+    altoV: number,
+    anchoV: number,
+): Promise<number> {
+    try {
+        const { preciosVarios } = Tablas;
+
+        const mosquitero = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${preciosVarios} WHERE nombre = 'Mosquitero'`);
+        // Manejar el caso donde vidrio o vidrio.precio es undefined
+        const precioUnitario = mosquitero?.precio ?? 0;
+        const areaMosquitero = (altoV * anchoV) / 10000;
+        const precioTotalMosquitero = areaMosquitero * precioUnitario;
+        // Verificar si es NaN antes de usar toFixed
+        if (isNaN(precioTotalMosquitero)) {
+            return 0;
+        }
+        return parseFloat(precioTotalMosquitero.toFixed(2));
+    } catch (error) {
+        console.error('Error al calcular precio del vidrio:', error);
+        return 0;
+    }
+}
+
+async function determinarPerfiles(serie_id: number): Promise<PerfilesOption[]> {
+    const { perfiles, series } = Tablas;
+    let result = await db.getAllAsync<PerfilesOption>(
+        `SELECT * FROM ${perfiles} WHERE serie_id = ? `
+        , [serie_id]);
+    if (result) {
+        return result;
+    }
+    else {
+        result = await db.getAllAsync<PerfilesOption>(
+            `SELECT * FROM ${perfiles} p JOIN ${series} s on p.serie_id = s.serie_id_hereda where s.id = ? `
+            , [serie_id]);
+        if (result) {
+            return result;
+        }
+        return [];
+    }
+}
+
+async function calculoPesoVentana(
+    anchoV: number,
+    altoV: number,
+    serie_id: number,
+): Promise<number> {
+
+    const perfilesDeLaSerie = await determinarPerfiles(serie_id);
+    console.log("perfilesDeLaSerie", perfilesDeLaSerie);
+    if (!perfilesDeLaSerie) throw new Error('Serie no válida');
+
+    let pesoTotal = 0;
+    perfilesDeLaSerie.map(perfil => {
+        let pesoPerfil = 0;
+        if (perfil.nombre === 'Marco superior' || perfil.nombre === 'Marco inferior' || perfil.nombre === 'Hoja Superior' || perfil.nombre === 'Hoja inferior') {
+            pesoPerfil = anchoV / 100;
+        }
+        if (perfil.nombre === 'Marco lateral' || perfil.nombre === 'Hoja lateral') {
+            pesoPerfil = (2 * altoV) / 100;
+        }
+        if (serie_id === 2) {
+            if (perfil.nombre === 'Hoja enganche central') {
+                pesoPerfil = (2 * altoV) / 100;
+            }
+        }
+        if (serie_id === 3) {
+            if (perfil.nombre === 'Hoja enganche central') {
+                pesoPerfil = (4 * altoV) / 100;
+            }
+        }
+        const pesoTemp = pesoPerfil * perfil.gramos_por_m;
+        pesoTotal += pesoTemp;
+    })
+
+    return parseFloat(pesoTotal.toFixed(2));
+}
+
+async function calcularPrecioColor(
+    color_id: number,
+    peso_aluminio: number
+): Promise<number> {
+    const { coloresAluminio } = Tablas;
+    const precioColor = await db.getFirstAsync<ColorOption>(
+        `SELECT * FROM ${coloresAluminio} WHERE id = ?`
+        , [color_id]);
+    if (peso_aluminio <= 0) throw new Error('El peso debe ser mayor que cero');
+    if (!precioColor) throw new Error('No se encontro el color buscado');
+
+    const pesoKilo = peso_aluminio / 1000; // Convertir a kilos
+    const precioTotal = pesoKilo * precioColor.precio;
+
+    return precioTotal;
+}
+
+
+export async function calcularPrecioVentana(
+    anchoV: number,
+    altoV: number,
+    serie_id: number,
+    color_id: number,
+    mosquitero: boolean,
+    vidrio: boolean
+): Promise<number> {
+    try {
+        // Validación básica de inputs
+        if (typeof anchoV !== 'number' || typeof altoV !== 'number' || anchoV <= 0 || altoV <= 0) {
+            throw new Error('Dimensiones de ventana inválidas');
+        }
+        console.log("anchoV", anchoV);
+        console.log("altoV", altoV);
+        console.log("serie_id", serie_id);
+        console.log("color_id", color_id);
+        console.log("mosquitero", mosquitero);
+        console.log("vidrio", vidrio);
+        const { series, preciosVarios } = Tablas;
+        
+        const pesoPerfiles = await calculoPesoVentana(anchoV, altoV, serie_id);
+        console.log("pesoPerfiles", pesoPerfiles);
+        const precioAluminioColor = await calcularPrecioColor(color_id, pesoPerfiles);
+
+        let precioVidrio = 0;
+        let precioMosquitero = 0;
+
+        if (vidrio) {
+            precioVidrio = await calcularPrecioVidrio(altoV, anchoV);
+        }
+
+        if (mosquitero) {
+            precioMosquitero = await calcularPrecioMosquitero(altoV, anchoV);
+        }
+
+        // Obtención de datos adicionales con valores por defecto
+        const serieAccesorio = await db.getFirstAsync<SerieOption>(
+            `SELECT * FROM ${series} WHERE id = ?`, 
+            [serie_id]
+        ) || { precio_accesorios: 0 }; // Valor por defecto
+
+        const varioManoObra = await db.getFirstAsync<PreciosVariosOption>(
+            `SELECT * FROM ${preciosVarios} WHERE nombre = 'Mano de obra'`
+        ) || { precio: 1 }; // Valor por defecto 1 si no existe
+
+        // Cálculo final con protección contra NaN
+        const sumaComponentes = precioAluminioColor + precioVidrio + precioMosquitero + (serieAccesorio.precio_accesorios || 0);
+        const factorGanancia = varioManoObra.precio || 1;
+        
+        const precioFinal = sumaComponentes * factorGanancia;
+
+        if (isNaN(precioFinal)) {
+            throw new Error('El cálculo del precio final resultó en NaN');
+        }
+
+        return parseFloat(precioFinal.toFixed(2));
+    } catch (error) {
+        console.error('Error en calcularPrecioVentana:', error);
+        return 0; 
+    }
+}

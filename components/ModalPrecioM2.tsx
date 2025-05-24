@@ -1,4 +1,5 @@
-import { PreciosVariosOption, useBD } from '@/contexts/BDContext';
+import { updatePrecioVarios } from '@/app/utils/utilsDB';
+import { PreciosVariosOption} from '@/contexts/BDContext';
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
@@ -7,25 +8,19 @@ interface ModalPrecioM2Props {
     visible: boolean;
     hideModal: () => void;
     vario: PreciosVariosOption;
-    onSave: (nuevoPrecio: number) => void;
 }
 
-const ModalPrecioM2 = ({ visible, hideModal, vario_id, onSave }: ModalPrecioM2Props) => {
-    const { preciosVarios } = useBD();
-    const [precio, setPrecio] = useState('');
+const ModalPrecioM2 = ({ visible, hideModal, vario }: ModalPrecioM2Props) => {
+    const [precio, setPrecio] = useState(vario.precio.toString());
     const [error, setError] = useState('');
 
-    React.useEffect(() => {
-        setPrecio(preciosVarios.find(p => p.id === vario_id)?.precio.toString() || '');
-    }, [preciosVarios, vario_id]);
-
-    const handleSave = () => {
+    const handleSave = async () => {
         const nuevoPrecio = Number(precio);
         if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        onSave(nuevoPrecio);
+        await updatePrecioVarios({...vario, precio: nuevoPrecio });
         hideModal();
     };
 
@@ -49,7 +44,7 @@ const ModalPrecioM2 = ({ visible, hideModal, vario_id, onSave }: ModalPrecioM2Pr
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.subtitle}>{preciosVarios.find(p => p.id === vario_id)?.nombre}</Text>
+                        <Text style={styles.subtitle}>{vario.nombre}</Text>
                         
                         <TextInput
                             label="Precio por M²"

@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalEditarPeso from './ModalPesoXmetro';
-import { useBD, PerfilesOption, SerieOption } from '../contexts/BDContext';
+import { PerfilesOption, SerieOption } from '../contexts/BDContext';
 
 interface ModalSerieProps {
     visible: boolean;
@@ -16,10 +16,6 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [selectedPerfil, setSelectedPerfil] = useState<PerfilesOption | null>(null);
     
-    const { updatePerfilGramos } = useBD();
-
-    
-
     const handleEdit = (index: number) => {
         const perfilSeleccionado = perfiles[index];
         setSelectedPerfil(perfilSeleccionado);

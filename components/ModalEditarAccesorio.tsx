@@ -1,25 +1,18 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { SerieOption, useBD } from '../contexts/BDContext';
+import { SerieOption  } from '../contexts/BDContext';
 import { updateAccesorioPrecio } from '@/app/utils/utilsDB';
 
 interface ModalEditarAccesorioProps {
     visible: boolean;
     hideModal: () => void;
     serie: SerieOption;
-    onSave: (nuevoPrecio: number) => void;
 }
 
-const ModalEditarAccesorio = ({ visible, hideModal, serie , onSave }: ModalEditarAccesorioProps) => {
-    const [precio, setPrecio] = useState('');
+const ModalEditarAccesorio = ({ visible, hideModal, serie }: ModalEditarAccesorioProps) => {
+    const [precio, setPrecio] = useState(serie.precio_accesorios.toString());
     const [error, setError] = useState('');
-
-    React.useEffect(() => {
-        if (serie) {
-            setPrecio(serie.precio_accesorios.toFixed(2).toString());
-        }
-    }, [serie]);
 
     const handleSave = () => {
         const nuevoPrecio = Number(precio);

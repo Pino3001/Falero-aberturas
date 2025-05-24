@@ -8,7 +8,6 @@ import ModalPrecioM2 from './ModalPrecioM2';
 import ModalAccesoriosSerie from './ModalAccesoriosSerie';
 import { ColorOption, PerfilesOption, PreciosVariosOption, SerieOption, useBD } from '../contexts/BDContext';
 import { getPerfiles, updatePrecioVarios } from '@/app/utils/utilsDB';
-import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 interface EditPrecioProps {
     precio: string;
@@ -16,7 +15,7 @@ interface EditPrecioProps {
     mapAberturas?: Map<string, any>;
 }
 
-export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: EditPrecioProps) {
+export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
     const [modal, setModal] = useState<{
         visible: boolean;
         tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios';
@@ -31,8 +30,6 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
     });
     const [isEditing, setIsEditing] = useState(false);
 
-
-
     const [state, setState] = useState<{
         colors: ColorOption[],
         series: SerieOption[],
@@ -46,12 +43,13 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
         perfiles: [],
         cargado: false,
     });
-
+    const [manoObra, setManoObra] = useState<string>("");
     const { colors, series, preciosVarios, perfiles } = state;
+    const { getColorAluminio, getSeries, getPreciosVarios, updatePrecioVarios } = useBD();
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const { getColorAluminio, getSeries, getPreciosVarios, updatePrecioVarios } = useBD();
                 const [colors, series, preciosVarios, perfiles] = await Promise.all([
                     getColorAluminio(),
                     getSeries(),
@@ -64,7 +62,7 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                     perfiles,
                     cargado: true,
                 }));
-
+                setManoObra(preciosVarios.find(p => p.nombre === 'Mano de Obra')?.precio.toString() || '0');
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -73,32 +71,14 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
     }, []);
 
 
-
-    const handleSaveM2Price = useCallback((nuevoPrecio: number) => {
-        if (preciosM2) {
-            updatePrecioVarios(preciosM2.id,);
-        }
-    }, [preciosM2]);
-
-    const handleEditToggle = useCallback(() => {
+    const handleEditToggle = async () => {
         if (isEditing) {
-            const precioNumerico = parseFloat(manoObra) || 0;
-            updatePrecioVarios('1', precioNumerico);
+            setIsEditing((prev) => !prev);
+            await updatePrecioVarios({ ...preciosVarios.find(p => p.nombre === 'Mano de Obra') as PreciosVariosOption, precio: Number(manoObra) });
         } else {
-            // Al entrar en modo edición, sincroniza con los últimos datos
-            const nuevoValor = preciosVarios.find(p => p.id === '1')?.precio.toString() || '0';
-            setManoObra(nuevoValor);
+            setIsEditing((prev) => !prev);
         }
-        setIsEditing(!isEditing);
-    }, [isEditing, manoObra, preciosVarios, updatePrecioVarios]);
-
-    const handleSave = useCallback(() => {
-        const data = {
-            preciosM2,
-            manoObra: Number(manoObra)
-        };
-        onPrecioChange(JSON.stringify(data));
-    }, [preciosM2, manoObra, onPrecioChange]);
+    };
 
     return (
         <View style={styles.container}>
@@ -124,12 +104,13 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                             />
                         ))}
                     </List.Accordion>
-                    <Button
-                        style={styles.accordion}
+                    <TouchableOpacity
+                        style={[styles.accordion, styles.buttonColores]}
+                        
                         onPress={() => {
                             setModal({ visible: true, tipo: 'color', extradata: undefined });
                         }}
-                    >Colores </Button>
+                    ><List.Icon icon="palette" color="white" style={{marginLeft:18}} /><Text style={{fontSize: 16, color: 'white'}}>Colores</Text> </TouchableOpacity>
                 </Card.Content>
             </Card>
 
@@ -177,8 +158,9 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                                 mode="outlined"
                                 value={preciosVarios.find(p => p.nombre === 'Mano de Obra')?.precio.toString() || ''}
                                 onChangeText={(text) => {
-                                    if (/^\d*\.?\d*$/.test(text) || text === '')
+                                    if (/^\d*\.?\d*$/.test(text) || text === '') {
                                         setManoObra(text);
+                                    }
                                 }}
                                 style={[
                                     styles.input,
@@ -230,14 +212,13 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                     <ModalColor
                         visible={modal.tipo === 'color'}
                         hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        color={colors}
+                        colors={colors}
                     />
 
                     <ModalPrecioM2
                         visible={modal.tipo === 'preciosVarios'}
                         hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
                         vario={modal.objeto as PreciosVariosOption}
-                        onSave={handleSaveM2Price}
                     />
 
                     <ModalAccesoriosSerie
@@ -248,19 +229,6 @@ export default function EditPrecio({ precio, onPrecioChange, mapAberturas }: Edi
                 </>
                 )
             }
-
-            {mapAberturas && mapAberturas.size > 0 && (
-                <View style={styles.saveButtonContainer}>
-                    <Button
-                        mode="contained"
-                        onPress={handleSave}
-                        style={styles.submitButton}
-                        labelStyle={styles.submitButtonLabel}
-                    >
-                        Guardar Cambios
-                    </Button>
-                </View>
-            )}
         </View>
     );
 }
@@ -355,4 +323,12 @@ const styles = StyleSheet.create({
     snackbar: {
         backgroundColor: 'red',
     },
+    buttonColores: {
+        height: 60,
+        borderRadius: 0,
+        flexDirection: 'row',
+        gap: 10,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+    }
 });

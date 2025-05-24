@@ -2,7 +2,6 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import * as SQLite from 'expo-sqlite';
 import {
     getColorAluminio, getCortinas, getPerfiles, getPreciosVarios, getSeries,
-    updateSeriePrecio,
     updatePerfilGramos,
     updatePrecioColor,
     updatePrecioVarios,
@@ -10,7 +9,7 @@ import {
 } from '@/app/utils/utilsDB';
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
-const db = SQLite.openDatabaseSync('falero.db');
+const db = SQLite.openDatabaseAsync('falero.db');
 console.log('Database opened:', db);
 
 export interface ColorOption {
@@ -22,7 +21,7 @@ export interface ColorOption {
 export interface CortinaOption {
     tipo: string;
     id: number;
-    preciom2: number; // Precio por metro cuadrado
+    preciom2: number | null; // Precio por metro cuadrado
 }
 
 export interface SerieOption {
@@ -52,7 +51,6 @@ interface BDContextType {
     getCortinas: () => Promise<CortinaOption[]>
     getPerfiles: () => Promise<PerfilesOption[]>,
     getPreciosVarios: () => Promise<PreciosVariosOption[]>,
-    updateSeriePrecio: (obj: SerieOption) => Promise<void>; // Añade esta línea
     updatePerfilGramos: (obj: PerfilesOption) => Promise<void>;
     updatePrecioColor: (obj: ColorOption) => Promise<void>;
     updatePrecioVarios: (obj: PreciosVariosOption) => Promise<void>;
@@ -69,7 +67,6 @@ export const BDContext = createContext<BDContextType>({
     getCortinas: async () => [],
     getPerfiles: async () => [],
     getPreciosVarios: async () => [],
-    updateSeriePrecio: async () => { },
     updatePerfilGramos: async () => { },
     updatePrecioColor: async () => { },
     updatePrecioVarios: async () => { },
@@ -107,7 +104,6 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
             getPerfiles,
             getPreciosVarios,
             getSeries,
-            updateSeriePrecio,
             updatePerfilGramos,
             updatePrecioColor,
             updatePrecioVarios
