@@ -5,21 +5,26 @@ import { Button, Card, Chip, TextInput } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Dropdown } from 'react-native-element-dropdown';
 import { Ventana } from './EditNuevoPresupuesto';
-import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption, useBD } from '../contexts/BDContext';
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption, useBD, VentanaPresupuestoOption } from '../contexts/BDContext';
 import { calcularPrecioVentana } from '@/app/utils/utilsDB';
 
 interface VentanaSeleccionadaProps {
-    handleComfirmarCreacion: (ventana: Ventana) => void;
+    ventanaAEditar?: VentanaPresupuestoOption;
+    handleDone: (ventana: VentanaPresupuestoOption) => void;
+    handleClose: () => void;
 }
 export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
-    const { handleComfirmarCreacion } = props;
+    const { ventanaAEditar, handleDone, handleClose } = props;
     const [state, setState] = useState<{
         colors: ColorOption[],
         series: SerieOption[],
         cortinas: CortinaOption[],
         perfiles: PerfilesOption[],
         preciosVarios: PreciosVariosOption[],
-        ventana: Ventana,
+        ventana: VentanaPresupuestoOption,
+        ancho: string,
+        alto: string,
+        cantidad: string,
         cargado: boolean
     }>({
         colors: [],
@@ -27,21 +32,23 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
         cortinas: [],
         perfiles: [], preciosVarios: [],
         cargado: false,
-        ventana: {
-            largo: '',
-            label: 'Ventana',
-            ancho: '',
+        ventana: ventanaAEditar ?? {
+            id: -1,
+            alto: 120,
+            ancho: 100,
             vidrio: true,
             mosquitero: false,
-            serie: undefined,
-            colorAluminio: undefined,
-            cortina: undefined,
-            cantidad: '1',
-            preciounitario: 0,
-            precioTotal: 0,
-        }
+            id_serie: -1,
+            id_color_aluminio: -1,
+            id_cortina: undefined,
+            cantidad: 1,
+            precio_unitario: 0,
+        },
+        ancho: "100",
+        alto: "120",
+        cantidad: "1"
     });
-    const { colors, series, cortinas, perfiles, preciosVarios, ventana } = state;
+    const { colors, series, cortinas, perfiles, preciosVarios, ventana, ancho, alto, cantidad } = state;
     const { getColorAluminio, getSeries, getCortinas, getPerfiles, getPreciosVarios } = useBD();
 
     useEffect(() => {
@@ -53,18 +60,25 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                     getCortinas(),
                     getPerfiles(),
                     getPreciosVarios()
-                ]); console.log('colors', JSON.stringify(colors));
-                setState((prevState) => ({
-                    ...prevState,
-                    colors, series, cortinas, perfiles, preciosVarios, cargado: true,
-                    ventana: {
-                        ...prevState.ventana,
-                        serie: series[0],
-                        colorAluminio: colors[0],
-                        cortina: cortinas[0],
+                ]);
+                setState((prevState) => {
+                    if (ventanaAEditar) {
+                        return ({
+                            ...prevState,
+                            colors, series, cortinas, perfiles, preciosVarios, cargado: true,
+                        });
                     }
-                }));
-
+                    else return ({
+                        ...prevState,
+                        colors, series, cortinas, perfiles, preciosVarios, cargado: true,
+                        ventana: {
+                            ...prevState.ventana,
+                            id_serie: series[0].id,
+                            id_color_aluminio: colors[0].id,
+                            id_cortina: cortinas[0].id,
+                        }
+                    });
+                });
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -81,10 +95,10 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
 
     const validateFields = () => {
         const newErrors = {
-            largo: ventana.largo.trim() === '',
-            ancho: ventana.ancho.trim() === '',
-            serie: !ventana.serie?.id,
-            colorAluminio: !ventana.colorAluminio?.id
+            largo: alto.trim() === '',
+            ancho: ancho.trim() === '',
+            serie: ventana.id_serie < 1,
+            colorAluminio: ventana.id_color_aluminio < 1
         };
 
         setErrors(newErrors);
@@ -93,78 +107,57 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
 
     const handleSubmit = () => {
         if (validateFields()) {
-            handleComfirmarCreacion(ventana);
+            handleDone(ventana);
         }
     };
 
-    const handleReset = () => {
-        setState((prevState) => ({
-            ...prevState,
-            ventana: {
-                largo: '',
-                label: 'Ventana',
-                ancho: '',
-                vidrio: true,
-                mosquitero: false,
-                serie: prevState.series[0],
-                colorAluminio: prevState.colors[0],
-                cortina: prevState.cortinas[0],
-                cantidad: '1',
-                preciounitario: -1,
-                precioTotal: -1,
-            }
-        }));
-        setErrors({
-            largo: false,
-            ancho: false,
-            serie: false,
-            colorAluminio: false
-        });
-    };
+
     useEffect(() => {
-    const fetchData = async () => {
-        const { largo, ancho, serie, colorAluminio , mosquitero, vidrio } = ventana;
-        setState((prevState)=>({...prevState, ventana:{...prevState.ventana,preciounitario: -2, precioTotal: -2}}) );
-        
-        if(largo === '' || ancho === '' || serie?.id === undefined || colorAluminio?.id === undefined) 
-            setState((prevState)=>({...prevState, ventana:{...prevState.ventana,preciounitario: -1, precioTotal: -1}}) );
-        
-        else if (Number(largo) <= 0 || Number(ancho) <= 0) {
-           setState((prevState)=>({...prevState, ventana:{...prevState.ventana,preciounitario: -1, precioTotal: -1}}) );
-        
-        }
-        else if(Number.isNaN(largo)|| Number.isNaN(ancho)){
-            setState((prevState)=>({...prevState, ventana:{...prevState.ventana,preciounitario: -1, precioTotal: -1}}) );
-        
-        }
-        else {
-        const preciounitario = await calcularPrecioVentana(Number(ancho), Number(largo), serie?.id, colorAluminio?.id, mosquitero, vidrio);
-        setState((prevState)=>({...prevState, ventana:{...prevState.ventana,preciounitario: preciounitario, precioTotal: Number(prevState.ventana.cantidad) * preciounitario}}) );
-        }
-    };
-    fetchData();
-    }, [ventana.ancho, ventana.largo, ventana.serie, ventana.colorAluminio, ventana.mosquitero, ventana.vidrio]);
+        const fetchData = async () => {
+            try {
+                console.log("calculo precio en proceso");
+                const { alto, ancho, id_serie, id_color_aluminio } = ventana;
+                setState((prevState) => ({ ...prevState, ventana: { ...prevState.ventana, preciounitario: -2, precioTotal: -2 } }));
+
+                if (alto < 1 || ancho < 1 || id_serie === -1 || id_color_aluminio === -1){
+                    console.log("alto:",alto);
+                    console.log("ancho:",ancho);
+                    console.log("id_serie:",id_serie);
+                    console.log("id_color_aluminio:",id_color_aluminio);
+                    setState((prevState) => ({ ...prevState, ventana: { ...prevState.ventana, preciounitario: -1, precioTotal: -1 } }));
+                }
+                else {
+                    const preciounitario = await calcularPrecioVentana(ventana);
+                    console.log("preciounitario:",preciounitario);
+                    setState((prevState) => ({ ...prevState, ventana: { ...prevState.ventana, precio_unitario: preciounitario} }));
+                }
+            }
+            catch (ex) {
+                console.log(ex);
+            }
+
+        };
+        fetchData();
+    }, [ventana.ancho, ventana.alto, ventana.id_serie, ventana.id_color_aluminio, ventana.id_cortina, ventana.mosquitero, ventana.vidrio, ventana.cantidad]);
 
 
-    
+
     const handleAncho = (ancho: string) => {
         const nuevoValor = ancho.replace(/[^0-9.]/g, '');
+        const number = Number.parseInt(nuevoValor);
         setState((prevState) => ({
             ...prevState,
-            ventana: {
-                ...prevState.ventana,
-                ancho: nuevoValor
-            }
+            ventana: { ...prevState.ventana, ancho: Number.isNaN(number) ? number : -1 },
+            ancho: nuevoValor
         }));
     };
-    const handleLargo = (largo: string) => {
+    const handleAlto = (largo: string) => {
         const nuevoValor = largo.replace(/[^0-9.]/g, '');
+        const number = Number.parseInt(nuevoValor);
         setState((prevState) => ({
             ...prevState,
-            ventana: {
-                ...prevState.ventana,
-                largo: nuevoValor
-            }
+            ventana: { ...prevState.ventana, ancho: Number.isNaN(number) ? number : -1 },
+            alto: nuevoValor
         }));
     };
     return (
@@ -176,7 +169,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                         <Text>Dimensiones</Text>
                         <View style={{ flexDirection: 'row', justifyContent: "flex-start", alignItems: "center", width: "70%", backgroundColor: 'transparent', height: 40 }}>
                             <TextInput
-                                label='Largo *'
+                                label='Alto *'
                                 mode="outlined"
                                 error={errors.largo}
                                 style={{ height: 40, width: '42%', backgroundColor: '#121212', fontSize: 14, }}
@@ -184,8 +177,8 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                 right={<TextInput.Affix text="cm" />}
                                 maxLength={3}
                                 showSoftInputOnFocus={true}
-                                value={ventana.largo}
-                                onChangeText={handleLargo}
+                                value={alto}
+                                onChangeText={handleAlto}
                                 outlineStyle={{ borderWidth: 1.5, height: 40 }}
                                 theme={{
                                     colors: {
@@ -210,7 +203,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                 right={<TextInput.Affix text="cm" />}
                                 showSoftInputOnFocus={true}
                                 keyboardType="numeric"
-                                value={ventana.ancho}
+                                value={ancho}
                                 onChangeText={handleAncho}
                                 theme={{
                                     colors: {
@@ -240,12 +233,12 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                     setState((prevState) => ({
                                         ...prevState, ventana: {
                                             ...prevState.ventana,
-                                            serie: item
+                                            id_serie: item.id
                                         }
                                     }));
                                     setErrors(prev => ({ ...prev, serie: false }));
                                 }}
-                                value={ventana.serie}
+                                value={ventana.id_serie}
                                 placeholder=" Selecciona la serie *"
                                 placeholderStyle={{ color: errors.serie ? '#ff0000' : 'white' }}
                                 activeColor="#6200ee"
@@ -275,7 +268,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                     }));
                                     setErrors(prev => ({ ...prev, colorAluminio: false }));
                                 }}
-                                value={ventana.colorAluminio}
+                                value={ventana.id_color_aluminio}
                                 placeholder=" Selecciona el color *"
                                 placeholderStyle={{ color: errors.colorAluminio ? '#ff0000' : 'white' }}
                                 activeColor="#6200ee"
@@ -303,10 +296,10 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                     setState((prevState) => ({
                                         ...prevState, ventana: {
                                             ...prevState.ventana,
-                                            cortina: item
+                                            id_cortina: item
                                         }
                                     }))}
-                                value={ventana.cortina}
+                                value={ventana.id_cortina}
                                 placeholder=" Selecciona la cortina"
                                 placeholderStyle={{ color: 'white' }}
                                 iconColor={'white'}
@@ -362,15 +355,17 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
 
                     <View style={{ flexDirection: 'row', gap: 10, justifyContent: "space-between", alignItems: "center", width: "100%", backgroundColor: 'transparent' }}>
                         <Text>Cantidad</Text>
-                        <View style={{ width: "70%", flexDirection: 'row', justifyContent: "flex-start", gap:10, backgroundColor: 'transparent' }}>
+                        <View style={{ width: "70%", flexDirection: 'row', justifyContent: "flex-start", gap: 10, backgroundColor: 'transparent' }}>
                             <TextInput
-                                value={ventana.cantidad}
+                                value={cantidad}
                                 onChangeText={(text) => {
                                     const newText = text.replace(/[^0-9]/g, '');
                                     setState((prevState) => ({
-                                        ...prevState, ventana: {
+                                        ...prevState,
+                                        cantidad: newText,
+                                        ventana: {
                                             ...prevState.ventana,
-                                            cantidad: newText
+                                            cantidad: Number(newText)
                                         }
                                     }))
                                 }}
@@ -404,9 +399,11 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                         onPress={() => {
                                             if (Number(ventana.cantidad) < 100) {
                                                 setState((prevState) => ({
-                                                    ...prevState, ventana: {
+                                                    ...prevState,
+                                                    cantidad: String(Number(prevState.ventana.cantidad) + 1),
+                                                    ventana: {
                                                         ...prevState.ventana,
-                                                        cantidad: String(Number(prevState.ventana.cantidad) + 1)
+                                                        cantidad: prevState.ventana.cantidad + 1
                                                     }
                                                 }))
                                             }
@@ -427,9 +424,11 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                         onPress={() => {
                                             if (Number(ventana.cantidad) > 0) {
                                                 setState((prevState) => ({
-                                                    ...prevState, ventana: {
+                                                    ...prevState,
+                                                    cantidad: String(Math.max(0, Number(prevState.ventana.cantidad) - 1)),
+                                                    ventana: {
                                                         ...prevState.ventana,
-                                                        cantidad: String(Math.max(0, Number(prevState.ventana.cantidad) - 1))
+                                                        cantidad: Math.max(0, prevState.ventana.cantidad - 1),
                                                     }
                                                 }));
                                             }
@@ -442,7 +441,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                             {
 
                                 <Card style={{
-                                    flexGrow:1,
+                                    flexGrow: 1,
                                     height: 40,
                                     marginLeft: 6,
                                     backgroundColor: '#121212',
@@ -451,9 +450,9 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                 }}>
                                     <Text style={{ color: 'red', fontSize: 8 }}>Precio sugerido</Text>
                                     <Text style={{ color: 'white', fontSize: 12, alignSelf: 'center' }}>
-                                        {ventana.precioTotal === -1 && 'No disponible' }
-                                        {ventana.precioTotal === -2 && 'Cargando...' }
-                                        {ventana.precioTotal > 0 && `$${(ventana.precioTotal).toFixed(1)}`}
+                                        {ventana.precio_unitario === -1 && 'No disponible'}
+                                        {ventana.precio_unitario === -2 && 'Cargando...'}
+                                        {ventana.precio_unitario > 0 && `$${(ventana.precio_unitario).toFixed(1)}`}
                                     </Text>
                                 </Card>
                             }
@@ -473,7 +472,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                         </Button>
                         <Button
                             mode="contained"
-                            onPress={handleReset}
+                            onPress={handleClose}
                             icon={() => <FontAwesome name="close" size={32} color="red" />}
                             style={styles.button}
                             labelStyle={{ color: 'white', fontWeight: 'bold' }}

@@ -1,4 +1,4 @@
-import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from '@/contexts/BDContext';
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, VentanaPresupuestoOption } from '@/contexts/BDContext';
 import { parse } from '@babel/core';
 import * as SQLite from 'expo-sqlite';
 const db = SQLite.openDatabaseSync('falero.db');
@@ -14,7 +14,10 @@ const Tablas = {
     cortinas: "cortinas",
     perfiles: "perfiles",
     preciosVarios: "preciosVarios",
+    presupuestos: "presupuestos",
+    ventanapresupuesto: "ventanapresupuesto",
 }
+
 
 const preciosVariosData: PreciosVariosOption[] = [
     { id: -1, nombre: 'Mano de obra', precio: 1.3 },
@@ -62,7 +65,7 @@ const perfilesData: PerfilesOption[] = [
 
 export async function initializeSeriesTable() {
     try {
-        const { series, coloresAluminio, cortinas, perfiles, preciosVarios } = Tablas;
+        const { series, coloresAluminio, cortinas, perfiles, preciosVarios, presupuestos, ventanapresupuesto } = Tablas;
         // --TABLA SERIES--
         /**
         *export interface SerieOption {
@@ -248,6 +251,56 @@ export async function initializeSeriesTable() {
         } else {
             console.log("ya tengo al menos una serie");
         }
+
+
+        /*         export interface PresupuestosOption {
+                    id: number;
+                    nombre_cliente: string;
+                    fecha: Date;
+                    ventanas: VentanaPresupuestoOption[],
+                    precio_total: number;
+                } */
+
+
+
+        // --TABLA PRESUPUESTOS--
+        await db.execAsync(`CREATE TABLE IF NOT EXISTS ${presupuestos} (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre_cliente TEXT NOT NULL,
+            fecha TEXT NOT NULL,
+            precio_total REAL NOT NULL);`
+        );
+
+        /* export interface VentanaPresupuestoOption {
+            id: number;
+            ancho: number;
+            largo: number;
+            id_color_aluminio: number;
+            id_serie: number;
+            vidrio: boolean;
+            mosquitero: boolean;
+            cantidad: number;
+            precio: number;
+        } */
+
+        +        // --TABLA PRESUPUESTOS--
+            await db.execAsync(`CREATE TABLE IF NOT EXISTS ${ventanapresupuesto} (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_presupuesto INTEGER NOT NULL,
+            ancho INTEGER NOT NULL,
+            alto INTEGER NOT NULL,
+            id_color_aluminio INTEGER NOT NULL,
+            id_serie INTEGER NOT NULL,
+            vidrio BOOLEAN NOT NULL,
+            id_cortina INTEGER,
+            mosquitero BOOLEAN NOT NULL,
+            cantidad INTEGER NOT NULL,
+            precio_unitario REAL NOT NULL,
+            FOREIGN KEY (id_color_aluminio) REFERENCES ${coloresAluminio} (id),
+            FOREIGN KEY (id_serie) REFERENCES ${series} (id),
+            FOREIGN KEY (id_cortina) REFERENCES ${cortinas} (id),
+            FOREIGN KEY (id_presupuesto) REFERENCES ${presupuestos} (id));`
+            );
     }
     catch (error) {
         console.error('Error initializing series table:', error);
@@ -255,6 +308,55 @@ export async function initializeSeriesTable() {
     }
 
 }
+
+export const insertarPresupuestoConItems = async (
+    presupuesto: PresupuestosOption,
+): Promise<PresupuestosOption> => {
+    try {
+
+        let presupuesto_result: PresupuestosOption = { ...presupuesto, fecha: new Date() };
+        await db.withExclusiveTransactionAsync(async (txn) => {
+            // 1. Insertar el presupuesto
+
+            const presupuestoResult = await txn.runAsync(
+                `INSERT INTO ${Tablas.presupuestos} (nombre_cliente, fecha, precio_total) 
+                VALUES (?, ?, ?);
+            `, [presupuesto_result.nombre_cliente, presupuesto_result.fecha.toISOString(), presupuesto_result.precio_total]);
+
+            const presupuestoId = presupuestoResult.lastInsertRowId as number;
+            presupuesto_result = { ...presupuesto_result, id: presupuestoId };
+            let ventanas_agregadas: VentanaPresupuestoOption[] = [];
+            // 2. Insertar todos los items asociados
+            for (const ventana of presupuesto.ventanas) {
+                let result = await txn.runAsync(`
+                    INSERT INTO ${Tablas.ventanapresupuesto} 
+                    (id_presupuesto, ancho, alto, id_color_aluminio, id_serie, id_cortina ,vidrio, mosquitero, cantidad, precio_unitario) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                `, [
+                    presupuestoId,
+                    ventana.ancho,
+                    ventana.alto,
+                    ventana.id_color_aluminio,
+                    ventana.id_serie,
+                    ventana.id_cortina ? ventana.id_cortina : null,
+                    ventana.vidrio,
+                    ventana.mosquitero,
+                    ventana.cantidad,
+                    ventana.precio_unitario
+                ]);
+                const idventana = result.lastInsertRowId;
+                ventanas_agregadas = [...ventanas_agregadas, { ...ventana, id: idventana }];
+            }
+            presupuesto_result.ventanas = ventanas_agregadas;
+            // Devolver el presupuesto con el ID asignado
+        });
+
+        return presupuesto_result;
+    } catch (error) {
+        console.error('Error en transacción:', error);
+        throw error;
+    }
+};
 
 export async function getSeries(): Promise<SerieOption[]> {
     const { series } = Tablas;
@@ -284,6 +386,48 @@ export async function getPreciosVarios(): Promise<PreciosVariosOption[]> {
     const { preciosVarios } = Tablas;
     const result = await db.getAllAsync<PreciosVariosOption>(`SELECT * FROM ${preciosVarios}`);
     return result;
+}
+
+export async function getPresupuestos(): Promise<PresupuestosOption[]> {
+    const { presupuestos } = Tablas;
+    const result = await db.getAllAsync<PresupuestosOption>(`SELECT * FROM ${presupuestos}`);
+    return result;
+}
+
+export async function getPresupuestoByID(id: number): Promise<PresupuestosOption> {
+    const { presupuestos, ventanapresupuesto } = Tablas;
+    try {
+        // Obtener el presupuesto
+        const presupuestoResult = await db.getFirstAsync<PresupuestosOption>(
+            `SELECT id, nombre_cliente, fecha, precio_total 
+            FROM ${presupuestos} 
+            WHERE id = ?`,
+            [id]
+        );
+
+        if (presupuestoResult === null) {
+            throw new Error("El id del presupuesto no es valido");
+        }
+
+        presupuestoResult.fecha = new Date(presupuestoResult.fecha);
+
+        // Obtener las ventanas asociadas al presupuesto
+        const ventanasResult = await db.getAllAsync<VentanaPresupuestoOption>(
+            `SELECT id, ancho, alto, id_color_aluminio, id_serie, id_cortina, 
+            vidrio, mosquitero, cantidad, precio_unitario
+            FROM ${ventanapresupuesto} 
+            WHERE id_presupuesto = ?`,
+            [id]
+        );
+
+        const result: PresupuestosOption = {
+            ...presupuestoResult,
+            ventanas: ventanasResult
+        };
+        return result;
+    } catch (error) {
+        throw error;
+    }
 }
 
 /* export interface SerieOption {
@@ -462,45 +606,35 @@ async function calcularPrecioColor(
 
 
 export async function calcularPrecioVentana(
-    anchoV: number,
-    altoV: number,
-    serie_id: number,
-    color_id: number,
-    mosquitero: boolean,
-    vidrio: boolean
+    ventana: VentanaPresupuestoOption,
 ): Promise<number> {
     try {
         // Validación básica de inputs
-        if (typeof anchoV !== 'number' || typeof altoV !== 'number' || anchoV <= 0 || altoV <= 0) {
+        if (typeof ventana.alto !== 'number' || typeof ventana.ancho !== 'number' || ventana.alto <= 0 || ventana.ancho <= 0) {
             throw new Error('Dimensiones de ventana inválidas');
         }
-        console.log("anchoV", anchoV);
-        console.log("altoV", altoV);
-        console.log("serie_id", serie_id);
-        console.log("color_id", color_id);
-        console.log("mosquitero", mosquitero);
-        console.log("vidrio", vidrio);
+        console.log("ventana", ventana);
         const { series, preciosVarios } = Tablas;
-        
-        const pesoPerfiles = await calculoPesoVentana(anchoV, altoV, serie_id);
+
+        const pesoPerfiles = await calculoPesoVentana(ventana.ancho, ventana.alto, ventana.id_serie);
         console.log("pesoPerfiles", pesoPerfiles);
-        const precioAluminioColor = await calcularPrecioColor(color_id, pesoPerfiles);
+        const precioAluminioColor = await calcularPrecioColor(ventana.id_color_aluminio, pesoPerfiles);
 
         let precioVidrio = 0;
         let precioMosquitero = 0;
 
-        if (vidrio) {
-            precioVidrio = await calcularPrecioVidrio(altoV, anchoV);
+        if (ventana.vidrio) {
+            precioVidrio = await calcularPrecioVidrio(ventana.alto, ventana.ancho);
         }
 
-        if (mosquitero) {
-            precioMosquitero = await calcularPrecioMosquitero(altoV, anchoV);
+        if (ventana.mosquitero) {
+            precioMosquitero = await calcularPrecioMosquitero(ventana.alto, ventana.ancho);
         }
 
         // Obtención de datos adicionales con valores por defecto
         const serieAccesorio = await db.getFirstAsync<SerieOption>(
-            `SELECT * FROM ${series} WHERE id = ?`, 
-            [serie_id]
+            `SELECT * FROM ${series} WHERE id = ?`,
+            [ventana.id_serie]
         ) || { precio_accesorios: 0 }; // Valor por defecto
 
         const varioManoObra = await db.getFirstAsync<PreciosVariosOption>(
@@ -510,7 +644,7 @@ export async function calcularPrecioVentana(
         // Cálculo final con protección contra NaN
         const sumaComponentes = precioAluminioColor + precioVidrio + precioMosquitero + (serieAccesorio.precio_accesorios || 0);
         const factorGanancia = varioManoObra.precio || 1;
-        
+
         const precioFinal = sumaComponentes * factorGanancia;
 
         if (isNaN(precioFinal)) {
@@ -520,6 +654,6 @@ export async function calcularPrecioVentana(
         return parseFloat(precioFinal.toFixed(2));
     } catch (error) {
         console.error('Error en calcularPrecioVentana:', error);
-        return 0; 
+        return 0;
     }
 }

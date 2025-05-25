@@ -45,6 +45,29 @@ export interface PreciosVariosOption {
     precio: number;
 }
 
+export interface PresupuestosOption {
+    id: number;
+    nombre_cliente: string;
+    fecha: Date;
+    ventanas: VentanaPresupuestoOption[],
+    precio_total: number;
+}
+
+export interface VentanaPresupuestoOption {
+    id: number;
+    ancho: number;
+    alto: number;
+    id_color_aluminio: number;
+    id_serie: number;
+    id_cortina?: number;
+    vidrio: boolean;
+    mosquitero: boolean;
+    cantidad: number;
+    precio_unitario: number;
+}
+
+
+
 interface BDContextType {
     getColorAluminio: () => Promise<ColorOption[]>,
     getSeries: () => Promise<SerieOption[]>,
