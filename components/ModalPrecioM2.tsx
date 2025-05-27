@@ -1,5 +1,4 @@
-import { updatePrecioVarios } from '@/app/utils/utilsDB';
-import { PreciosVariosOption} from '@/contexts/BDContext';
+import { PreciosVariosOption, useBD} from '@/contexts/BDContext';
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
@@ -7,20 +6,22 @@ import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native
 interface ModalPrecioM2Props {
     visible: boolean;
     hideModal: () => void;
-    vario: PreciosVariosOption;
+    vario?: PreciosVariosOption;
 }
 
 const ModalPrecioM2 = ({ visible, hideModal, vario }: ModalPrecioM2Props) => {
-    const [precio, setPrecio] = useState(vario.precio.toString());
+    const [precio, setPrecio] = useState(vario?.precio?.toString() || '0');
     const [error, setError] = useState('');
-
+    const {updatePrecioVariosBDContext} = useBD();
     const handleSave = async () => {
         const nuevoPrecio = Number(precio);
         if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        await updatePrecioVarios({...vario, precio: nuevoPrecio });
+        if (vario && typeof vario.id === 'number') {
+            await updatePrecioVariosBDContext({ ...vario, precio: nuevoPrecio, id: vario.id });
+        }
         hideModal();
     };
 
@@ -35,7 +36,7 @@ const ModalPrecioM2 = ({ visible, hideModal, vario }: ModalPrecioM2Props) => {
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={styles.content}>
                         <View style={styles.header}>
-                            <Text style={styles.title}>Precio por M²</Text>
+                            <Text style={styles.title}>Precios Varios</Text>
                             <IconButton
                                 icon="close"
                                 iconColor="white"
@@ -44,7 +45,7 @@ const ModalPrecioM2 = ({ visible, hideModal, vario }: ModalPrecioM2Props) => {
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.subtitle}>{vario.nombre}</Text>
+                        <Text style={styles.subtitle}>{vario?.nombre}</Text>
                         
                         <TextInput
                             label="Precio por M²"

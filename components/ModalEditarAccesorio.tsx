@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { SerieOption  } from '../contexts/BDContext';
-import { updateAccesorioPrecio } from '@/app/utils/utilsDB';
+import { SerieOption, useBD } from '../contexts/BDContext';
 
 interface ModalEditarAccesorioProps {
     visible: boolean;
@@ -10,19 +9,24 @@ interface ModalEditarAccesorioProps {
     serie: SerieOption;
 }
 
-const ModalEditarAccesorio = ({ visible, hideModal, serie }: ModalEditarAccesorioProps) => {
+const ModalEditarAccesorio = ({ visible, hideModal, serie  }: ModalEditarAccesorioProps) => {
     const [precio, setPrecio] = useState(serie.precio_accesorios.toString());
     const [error, setError] = useState('');
-
-    const handleSave = () => {
+    const { updateAccesorioPrecioBDContext } = useBD();
+    const handleSave = async () => {
         const nuevoPrecio = Number(precio);
         if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        updateAccesorioPrecio({ ...serie, precio_accesorios: nuevoPrecio })
+        if (serie && typeof serie.id === 'number') {
+            console.log('precio accesorio', nuevoPrecio);
+            await updateAccesorioPrecioBDContext({ ...serie, precio_accesorios: nuevoPrecio });
+        }
         hideModal();
     };
+
+
 
     return (
         <Portal>
@@ -45,7 +49,7 @@ const ModalEditarAccesorio = ({ visible, hideModal, serie }: ModalEditarAccesori
                             />
                         </View>
                         <Text style={styles.serieText}>{serie?.nombre}</Text>
-                        
+
                         <TextInput
                             label="Precio"
                             value={precio}
@@ -69,12 +73,12 @@ const ModalEditarAccesorio = ({ visible, hideModal, serie }: ModalEditarAccesori
                             }}
                             left={<TextInput.Affix text="US$" />}
                         />
-                        
+
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                        
+
                         <View style={styles.buttonContainer}>
-                            <Button 
-                                mode="contained" 
+                            <Button
+                                mode="contained"
                                 onPress={handleSave}
                                 style={styles.button}
                                 textColor="white"

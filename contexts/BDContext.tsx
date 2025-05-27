@@ -1,13 +1,13 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import * as SQLite from 'expo-sqlite';
 import {
-    getColorAluminio, getCortinas, getPerfiles, getPreciosVarios, getSeries,
     updatePerfilGramos,
     updatePrecioColor,
     updatePrecioVarios,
-    initializeSeriesTable
+    insertarPresupuestoConItems,
+    initializeSeriesTable,
+    updateAccesorioPrecio
 } from '@/app/utils/utilsDB';
-import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const db = SQLite.openDatabaseAsync('falero.db');
 console.log('Database opened:', db);
@@ -18,11 +18,15 @@ export interface ColorOption {
     precio: number;
 }
 
+
+export const ColorOptionDefault: ColorOption = { color: "", id: -1, precio: -1 }
+
 export interface CortinaOption {
     tipo: string;
     id: number;
     preciom2: number | null; // Precio por metro cuadrado
 }
+export const CortinaOptionDefault: CortinaOption = { tipo: "", id: -1, preciom2: -1 };
 
 export interface SerieOption {
     nombre: string;
@@ -31,6 +35,8 @@ export interface SerieOption {
     serie_id_hereda: number | null;
 }
 
+export const SerieOptionDefault: SerieOption = { nombre: "", id: -1, precio_accesorios: -1, serie_id_hereda: null }
+
 export interface PerfilesOption {
     id: number;
     nombre: string;
@@ -38,12 +44,16 @@ export interface PerfilesOption {
     serie_id: number;
 }
 
+export const PerfilesOptionDefault: PerfilesOption = { nombre: "", id: -1, gramos_por_m: -1, serie_id: -1 }
 
 export interface PreciosVariosOption {
     id: number;
     nombre: string;
     precio: number;
 }
+
+export const PreciosVariosOptionDefault: PreciosVariosOption = { nombre: "", id: -1, precio: -1 }
+
 
 export interface PresupuestosOption {
     id: number;
@@ -52,6 +62,8 @@ export interface PresupuestosOption {
     ventanas: VentanaPresupuestoOption[],
     precio_total: number;
 }
+
+export const PresupuestosOptionDefault: PresupuestosOption = { id: -1, nombre_cliente: '', fecha: new Date(), precio_total: -1, ventanas: [] }
 
 export interface VentanaPresupuestoOption {
     id: number;
@@ -69,14 +81,13 @@ export interface VentanaPresupuestoOption {
 
 
 interface BDContextType {
-    getColorAluminio: () => Promise<ColorOption[]>,
-    getSeries: () => Promise<SerieOption[]>,
-    getCortinas: () => Promise<CortinaOption[]>
-    getPerfiles: () => Promise<PerfilesOption[]>,
-    getPreciosVarios: () => Promise<PreciosVariosOption[]>,
-    updatePerfilGramos: (obj: PerfilesOption) => Promise<void>;
-    updatePrecioColor: (obj: ColorOption) => Promise<void>;
-    updatePrecioVarios: (obj: PreciosVariosOption) => Promise<void>;
+    stateBD: BDState;
+    presupuestosUltimaAct: Date;
+    updatePerfilGramosBDContext: (obj: PerfilesOption) => Promise<void>;
+    updatePrecioColorBDContext: (obj: ColorOption) => Promise<void>;
+    updatePrecioVariosBDContext: (obj: PreciosVariosOption) => Promise<void>;
+    insertarPresupuestoConItemsBDContext: (obj: PresupuestosOption) => Promise<PresupuestosOption>;
+    updateAccesorioPrecioBDContext: (serie: SerieOption) => Promise<void>;
     //obtenerKilajePerfil: (id:string, serie: string) => number;// gramos x metro
 }
 
@@ -85,32 +96,49 @@ interface BDProviderProps {
 }
 
 export const BDContext = createContext<BDContextType>({
-    getColorAluminio: async () => [],
-    getSeries: async () => [],
-    getCortinas: async () => [],
-    getPerfiles: async () => [],
-    getPreciosVarios: async () => [],
-    updatePerfilGramos: async () => { },
-    updatePrecioColor: async () => { },
-    updatePrecioVarios: async () => { },
+    stateBD: {
+        colors: [],
+        series: [],
+        perfiles: [],
+        cortinas: [],
+        preciosVarios: [],
+    },
+    presupuestosUltimaAct: new Date(),
+    updatePerfilGramosBDContext: async () => { },
+    updatePrecioColorBDContext: async () => { },
+    updatePrecioVariosBDContext: async () => { },
+    insertarPresupuestoConItemsBDContext: async () => {
+        throw new Error('insertarPresupuestoConItemsBDContext not implemented');
+    },
+    updateAccesorioPrecioBDContext: async () => {
+        throw new Error('updateAccesorioPrecioBDContext not implemented');
+    },
 });
 
 // Define the state type explicitly
-interface BDState {
+export interface BDState {
     colors: ColorOption[];
     series: SerieOption[];
     perfiles: PerfilesOption[];
-    cortina: CortinaOption[];
+    cortinas: CortinaOption[];
     preciosVarios: PreciosVariosOption[];
 }
 
 export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
-
+    const [presupuestosUltimaAct, setPresupuestosUltimaAct] = useState(new Date());
+    const [stateBD, setStateBD] = useState<BDState>({
+        colors: [],
+        series: [],
+        perfiles: [],
+        cortinas: [],
+        preciosVarios: [],
+    });
     useEffect(() => {
         const loadData = async () => {
             try {
                 // Inicializar todas las tablas
-                await initializeSeriesTable();
+                const initializedState = await initializeSeriesTable();
+                setStateBD(initializedState);
             } catch (error) {
                 console.error('Error loading data:', error);
             }
@@ -118,18 +146,92 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         loadData();
     }, []);
 
+    const insertarPresupuestoConItemsBDContext = async (
+        presupuesto: PresupuestosOption,
+    ): Promise<PresupuestosOption> => {
+        const resultado = await insertarPresupuestoConItems(presupuesto);
+        setPresupuestosUltimaAct(new Date());
+        return resultado;
+    }
 
+    const updateAccesorioPrecioBDContext = async (serie: SerieOption) => {
+        await updateAccesorioPrecio(serie);
+        setStateBD(prevState => {
+            const index = prevState.series.findIndex(item => item.id === serie.id);
+            if (index === -1) return prevState; // No se encontró el elemento
+            return {
+                ...prevState,
+                series:
+                    [
+                        ...prevState.series.slice(0, index),
+                        { ...prevState.series[index], ...serie },
+                        ...prevState.series.slice(index + 1)
+                    ]
+            };
+        });
+    }
+
+    const updatePrecioVariosBDContext = async (precioVario: PreciosVariosOption) => {
+        await updatePrecioVarios(precioVario);
+        setStateBD(prevState => {
+            const index = prevState.preciosVarios.findIndex(item => item.id === precioVario.id);
+            if (index === -1) return prevState; // No se encontró el elemento
+            return {
+                ...prevState,
+                preciosVarios:
+                    [
+                        ...prevState.preciosVarios.slice(0, index),
+                        { ...prevState.preciosVarios[index], ...precioVario },
+                        ...prevState.preciosVarios.slice(index + 1)
+                    ]
+            };
+        });
+    }
+
+    const updatePrecioColorBDContext = async (precioColor: ColorOption) => {
+        await updatePrecioColor(precioColor);
+        setStateBD(prevState => {
+            const index = prevState.colors.findIndex(item => item.id === precioColor.id);
+            if (index === -1) return prevState; // No se encontró el elemento
+            return {
+                ...prevState,
+                colors:
+                    [
+                        ...prevState.colors.slice(0, index),
+                        { ...prevState.colors[index], ...precioColor },
+                        ...prevState.colors.slice(index + 1)
+                    ]
+            };
+        });
+    }
+
+    const updatePerfilGramosBDContext = async (perfilGramos: PerfilesOption) => {
+        await updatePerfilGramos(perfilGramos);
+        setStateBD(prevState => {
+            const index = prevState.perfiles.findIndex(item => item.id === perfilGramos.id);
+            if (index === -1) return prevState; // No se encontró el elemento
+            return {
+                ...prevState,
+                perfiles:
+                    [
+                        ...prevState.perfiles.slice(0, index),
+                        { ...prevState.perfiles[index], ...perfilGramos },
+                        ...prevState.perfiles.slice(index + 1)
+                    ]
+            };
+        });
+    }
     // Provee todo el estado + la función de actualización
     return (
         <BDContext.Provider value={{
-            getColorAluminio,
-            getCortinas,
-            getPerfiles,
-            getPreciosVarios,
-            getSeries,
-            updatePerfilGramos,
-            updatePrecioColor,
-            updatePrecioVarios
+            stateBD,
+            presupuestosUltimaAct,
+            updatePerfilGramosBDContext,
+            updatePrecioColorBDContext,
+            updatePrecioVariosBDContext,
+            insertarPresupuestoConItemsBDContext,
+            updateAccesorioPrecioBDContext
+
         }}>
             {children}
         </BDContext.Provider>

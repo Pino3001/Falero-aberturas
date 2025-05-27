@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { ColorOption } from '@/contexts/BDContext';
-import { updatePrecioColor } from '@/app/utils/utilsDB';
+import { ColorOption, useBD } from '@/contexts/BDContext';
 
 interface ModalPrecioGramoProps {
     visible: boolean;
@@ -13,14 +12,14 @@ interface ModalPrecioGramoProps {
 const ModalPrecioGramo = ({ visible, hideModal, color }: ModalPrecioGramoProps) => {
     const [precio, setPrecio] = useState(color.precio.toString());
     const [error, setError] = useState('');
-
+    const {updatePrecioColorBDContext} = useBD()
     const  handleSave = async () => {
         const nuevoPrecio = Number(precio);
         if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        await updatePrecioColor({ ...color, precio: nuevoPrecio })
+        await updatePrecioColorBDContext({ ...color, precio: nuevoPrecio })
         hideModal();
     };
 

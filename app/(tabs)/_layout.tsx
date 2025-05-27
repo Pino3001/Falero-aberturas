@@ -24,19 +24,19 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const appName = "FALERO";
-
   return (
     <PaperProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+
             // Disable the static render of the header on web
             // to prevent a hydration error in React Navigation v6.
             headerShown: useClientOnlyValue(false, true),
           }}>
           <Tabs.Screen
-            name="index"
+            name="nuevo_presupuesto"
             options={{
               title: 'Nuevo Presupuesto',
               tabBarIcon: ({ color }) => <Entypo name="calculator" size={24} color={color} />,

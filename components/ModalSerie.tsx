@@ -8,7 +8,7 @@ import { PerfilesOption, SerieOption } from '../contexts/BDContext';
 interface ModalSerieProps {
     visible: boolean;
     hideModal: () => void;
-    serie: SerieOption;
+    serie?: SerieOption;
     perfiles: PerfilesOption[];
 }
 
@@ -32,7 +32,7 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Serie {serie.nombre}</Text>
+                        <Text style={styles.title}>Serie {serie?.nombre}</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
                             <MaterialCommunityIcons name="close" size={24} color="white" />
                         </TouchableOpacity>
@@ -47,7 +47,7 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
 
                         {perfiles.map((perfil, index) => (
                             <DataTable.Row key={index} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{perfiles.find(p => p.serie_id === serie.id)?.nombre}</DataTable.Cell>
+                                <DataTable.Cell textStyle={styles.cellText}>{perfiles.find(p => p.serie_id === serie?.id)?.nombre}</DataTable.Cell>
                                 <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos_por_m}</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton

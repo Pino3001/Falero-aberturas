@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { PerfilesOption  } from '../contexts/BDContext';
-import { updatePerfilGramos } from '@/app/utils/utilsDB';
+import { PerfilesOption, useBD  } from '../contexts/BDContext';
 
 interface ModalPesoXmetroProps {
     visible: boolean;
@@ -20,14 +19,14 @@ const ModalPesoXmetro = ({ visible, hideModal, perfil }: ModalPesoXmetroProps) =
             setPeso(perfil.gramos_por_m.toString());
         }
     }, [perfil]);
-
+    const {updatePerfilGramosBDContext} = useBD();
     const handleSave = () => {
         const nuevoPeso = Number(peso);
         if (isNaN(nuevoPeso) || nuevoPeso <= 0) {
             setError('Por favor, ingrese un peso válido');
             return;
         }
-        updatePerfilGramos({ ...perfil, gramos_por_m: nuevoPeso })
+        updatePerfilGramosBDContext({ ...perfil, gramos_por_m: nuevoPeso })
         hideModal();
     };
 

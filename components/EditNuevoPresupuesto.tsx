@@ -5,8 +5,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import VentanaSeleccionada from './VentanaSeleccionada';
 import { Dropdown } from 'react-native-element-dropdown';
-import { SerieOption, ColorOption, CortinaOption, PresupuestosOption, VentanaPresupuestoOption } from '../contexts/BDContext';
-import { insertarPresupuestoConItems } from '@/app/utils/utilsDB';
+import { SerieOption, ColorOption, CortinaOption, PresupuestosOption, VentanaPresupuestoOption, useBD, PresupuestosOptionDefault } from '../contexts/BDContext';
 const ventanaIcon = require('../assets/images/ventana.png');
 const ventana3HojasIcon = require('../assets/images/ventana con 3 hojas.png');
 const ventanaCortinaIcon = require('../assets/images/ventana con cortina.png');
@@ -26,14 +25,10 @@ export type Ventana = {
   precioTotal: number;
 };
 
+
 export default function EditNuevoPresupuesto({ path }: { path: string }) {
-  const [presupuesto, SetPresupuesto] = useState<PresupuestosOption>({
-    id: -1,
-    fecha: new Date(),
-    nombre_cliente: "",
-    precio_total: -1,
-    ventanas: []
-  });
+
+  const [presupuesto, SetPresupuesto] = useState<PresupuestosOption>(PresupuestosOptionDefault);
   const [mostrarAbertura, setMostrarAbertura] = useState(false);
 
   const handleNombreChange = (texto: string) => {
@@ -73,10 +68,8 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
     setMostrarAbertura(false);
     setAberturaEditar(undefined);
   }
-
+  const { insertarPresupuestoConItemsBDContext } = useBD();
   const handleGuardarPresupuesto = async () => {
-    const precioTotalTemp = presupuesto.ventanas.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0).toFixed(1)
-    SetPresupuesto((prevPresupuesto) => ({ ...prevPresupuesto, precio_total: Number(precioTotalTemp) }));
     Alert.alert(
       'Guardar presupuesto',
       '¿Estás seguro que deseas guardar este presupuesto?',
@@ -88,7 +81,18 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
         },
         {
           text: 'Guardar',
-          onPress: () => insertarPresupuestoConItems(presupuesto)
+          onPress: async ()  => {
+            try{
+              const precioTotalTemp = presupuesto.ventanas.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+              const respuesta =await insertarPresupuestoConItemsBDContext({...presupuesto, precio_total: precioTotalTemp});
+              SetPresupuesto(PresupuestosOptionDefault);
+              console.log("respuesta:", respuesta);
+            }
+            catch(ex){
+              console.log(ex);
+            }
+
+          }
         }
       ]
     )

@@ -6,7 +6,7 @@ import { Text, View } from '@/components/Themed';
 
 export default function TabOneScreen() {
   return (
-    <ScrollView style={{width: '100%'}}>
+    <ScrollView style={{width: '100%', height: '100%'}}>
     <KeyboardAwareScrollView // Para que el textImput no quede oculto por el teclado
       enableOnAndroid={true}
       extraScrollHeight={0}

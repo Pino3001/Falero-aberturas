@@ -8,7 +8,7 @@ import { ColorOption } from '@/contexts/BDContext';
 interface ModalColorProps {
     visible: boolean;
     hideModal: () => void;
-    colors: ColorOption[];
+    colors?: ColorOption[];
 }
 
 
@@ -16,7 +16,7 @@ interface ModalColorProps {
 const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [selectedAcabado, setSelectedAcabado] = useState<ColorOption | null>(null);
-    
+
 
     const handleEdit = (color: ColorOption) => {
         setSelectedAcabado(color);
@@ -38,18 +38,22 @@ const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
                             <MaterialCommunityIcons name="close" size={24} color="white" />
                         </TouchableOpacity>
                     </View>
-                    
-                    <DataTable style={{width: '100%'}}>
+
+                    <DataTable style={{ width: '100%' }}>
                         <DataTable.Header style={styles.tableHeader}>
                             <DataTable.Title textStyle={styles.headerText}>Color</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Precio/Kg</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {colors.map((acabado: ColorOption) => (
+                        {colors?.map((acabado: ColorOption) => (
                             <DataTable.Row key={acabado.id} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{acabado.color}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>US${acabado.precio}</DataTable.Cell>
+                                <DataTable.Cell>
+                                    <Text style={styles.cellText}>{acabado.color}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric>
+                                    <Text style={styles.cellText}>US${acabado.precio}</Text>
+                                </DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
@@ -69,7 +73,7 @@ const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
                 <ModalPrecioGramo
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    color={selectedAcabado }
+                    color={selectedAcabado}
                 />
             )}
         </Portal>

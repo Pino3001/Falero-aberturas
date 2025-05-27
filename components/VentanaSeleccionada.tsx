@@ -15,22 +15,16 @@ interface VentanaSeleccionadaProps {
 }
 export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
     const { ventanaAEditar, handleDone, handleClose } = props;
+    const {stateBD} = useBD();
+    const {colors, series, cortinas} = stateBD;
+    
     const [state, setState] = useState<{
-        colors: ColorOption[],
-        series: SerieOption[],
-        cortinas: CortinaOption[],
-        perfiles: PerfilesOption[],
-        preciosVarios: PreciosVariosOption[],
         ventana: VentanaPresupuestoOption,
         ancho: string,
         alto: string,
         cantidad: string,
         cargado: boolean
     }>({
-        colors: [],
-        series: [],
-        cortinas: [],
-        perfiles: [], preciosVarios: [],
         cargado: false,
         ventana: ventanaAEditar ?? {
             id: -1,
@@ -38,9 +32,9 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
             ancho: 100,
             vidrio: true,
             mosquitero: false,
-            id_serie: -1,
-            id_color_aluminio: -1,
-            id_cortina: undefined,
+            id_serie: series[0].id,
+            id_color_aluminio: colors[0].id,
+            id_cortina: cortinas[0].id,
             cantidad: 1,
             precio_unitario: 0,
         },
@@ -48,44 +42,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
         alto: "120",
         cantidad: "1"
     });
-    const { colors, series, cortinas, perfiles, preciosVarios, ventana, ancho, alto, cantidad } = state;
-    const { getColorAluminio, getSeries, getCortinas, getPerfiles, getPreciosVarios } = useBD();
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [colors, series, cortinas, perfiles] = await Promise.all([
-                    getColorAluminio(),
-                    getSeries(),
-                    getCortinas(),
-                    getPerfiles(),
-                    getPreciosVarios()
-                ]);
-                setState((prevState) => {
-                    if (ventanaAEditar) {
-                        return ({
-                            ...prevState,
-                            colors, series, cortinas, perfiles, preciosVarios, cargado: true,
-                        });
-                    }
-                    else return ({
-                        ...prevState,
-                        colors, series, cortinas, perfiles, preciosVarios, cargado: true,
-                        ventana: {
-                            ...prevState.ventana,
-                            id_serie: series[0].id,
-                            id_color_aluminio: colors[0].id,
-                            id_cortina: cortinas[0].id,
-                        }
-                    });
-                });
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
-        fetchData();
-    }, []);
-
+    const { ventana, ancho, alto, cantidad } = state;
     const [errors, setErrors] = useState({
         largo: false,
         ancho: false,
@@ -296,7 +253,7 @@ export default function VentanaSeleccionada(props: VentanaSeleccionadaProps) {
                                     setState((prevState) => ({
                                         ...prevState, ventana: {
                                             ...prevState.ventana,
-                                            id_cortina: item
+                                            id_cortina: item.id
                                         }
                                     }))}
                                 value={ventana.id_cortina}

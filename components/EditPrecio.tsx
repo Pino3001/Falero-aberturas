@@ -6,75 +6,48 @@ import ModalSerie from './ModalSerie';
 import ModalColor from './ModalColor';
 import ModalPrecioM2 from './ModalPrecioM2';
 import ModalAccesoriosSerie from './ModalAccesoriosSerie';
-import { ColorOption, PerfilesOption, PreciosVariosOption, SerieOption, useBD } from '../contexts/BDContext';
-import { getPerfiles, updatePrecioVarios } from '@/app/utils/utilsDB';
+import { ColorOption, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault, useBD } from '../contexts/BDContext';
+import { preciosVariosEnum } from '@/app/Data/variablesGlobales';
 
 interface EditPrecioProps {
     precio: string;
     onPrecioChange: (precio: string) => void;
-    mapAberturas?: Map<string, any>;
 }
 
-export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
+export default function EditPrecio({ }: EditPrecioProps) {
+    console.log("EditPrecio: entro");
     const [modal, setModal] = useState<{
         visible: boolean;
         tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios';
-        objeto?: SerieOption | ColorOption | PreciosVariosOption | SerieOption[];
-        extradata?: { perfiles: PerfilesOption[] };
+        dataModalSerie: {
+            serie: SerieOption;
+            perfiles: PerfilesOption[];
+        };
+        dataModalPrecioM2: {
+            vario: PreciosVariosOption
+        };
     }
     >({
         visible: false,
         tipo: undefined,
-        objeto: undefined,
-        extradata: undefined,
+        dataModalSerie: {
+            serie: SerieOptionDefault,
+            perfiles: []
+        },
+        dataModalPrecioM2: {
+            vario: PreciosVariosOptionDefault
+        },
     });
     const [isEditing, setIsEditing] = useState(false);
-
-    const [state, setState] = useState<{
-        colors: ColorOption[],
-        series: SerieOption[],
-        preciosVarios: PreciosVariosOption[],
-        perfiles: PerfilesOption[],
-        cargado: boolean
-    }>({
-        colors: [],
-        series: [],
-        preciosVarios: [],
-        perfiles: [],
-        cargado: false,
-    });
     const [manoObra, setManoObra] = useState<string>("");
-    const { colors, series, preciosVarios, perfiles } = state;
-    const { getColorAluminio, getSeries, getPreciosVarios, updatePrecioVarios } = useBD();
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [colors, series, preciosVarios, perfiles] = await Promise.all([
-                    getColorAluminio(),
-                    getSeries(),
-                    getPreciosVarios(),
-                    getPerfiles(),
-                ]);
-                setState((prevState) => ({
-                    ...prevState,
-                    colors, series, preciosVarios,
-                    perfiles,
-                    cargado: true,
-                }));
-                setManoObra(preciosVarios.find(p => p.nombre === 'Mano de Obra')?.precio.toString() || '0');
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
-        fetchData();
-    }, []);
-
+    const { stateBD, updatePrecioVariosBDContext } = useBD();
+    const { colors, series, preciosVarios, perfiles } = stateBD;
+    console.log("preciosVarios:",preciosVarios);
 
     const handleEditToggle = async () => {
         if (isEditing) {
             setIsEditing((prev) => !prev);
-            await updatePrecioVarios({ ...preciosVarios.find(p => p.nombre === 'Mano de Obra') as PreciosVariosOption, precio: Number(manoObra) });
+            await updatePrecioVariosBDContext({ ...preciosVarios.find(p => p.nombre === 'Mano de Obra') as PreciosVariosOption, precio: Number(manoObra) });
         } else {
             setIsEditing((prev) => !prev);
         }
@@ -95,9 +68,9 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                         {series.map((serie) => (
                             <List.Item
                                 key={serie.id}
-                                title={serie.nombre}
+                                title={serie.nombre ?? '-1'}
                                 onPress={() => {
-                                    setModal({ visible: true, tipo: 'serie', objeto: serie, extradata: { perfiles: perfiles.filter(p => p.serie_id === serie.id) } });
+                                    setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'serie', dataModalSerie: { serie, perfiles: perfiles.filter(p => p.serie_id === serie.id) } }));
                                 }}
                                 style={styles.item}
                                 titleStyle={styles.itemTitle}
@@ -106,11 +79,13 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                     </List.Accordion>
                     <TouchableOpacity
                         style={[styles.accordion, styles.buttonColores]}
-                        
+
                         onPress={() => {
-                            setModal({ visible: true, tipo: 'color', extradata: undefined });
+                            setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'color' }));
                         }}
-                    ><List.Icon icon="palette" color="white" style={{marginLeft:18}} /><Text style={{fontSize: 16, color: 'white'}}>Colores</Text> </TouchableOpacity>
+                    ><List.Icon icon="palette" color="white" style={{ marginLeft: 18 }} />
+                        <Text style={{ fontSize: 16, color: 'white' }}>Colores</Text>
+                    </TouchableOpacity>
                 </Card.Content>
             </Card>
 
@@ -124,15 +99,11 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                         titleStyle={styles.accordionTitle}
                         left={props => <List.Icon {...props} icon="tools" color="white" />}
                     >
-                        {preciosVarios.map((varios) => (
+                        {preciosVarios.filter(x=> !x.nombre.includes(preciosVariosEnum.manoDeObra)).map((vario) => (
                             <List.Item
-                                key={varios.id}
-                                title={varios.nombre}
-                                onPress={() => {
-                                    setModal(
-                                        { visible: true, tipo: 'preciosVarios', objeto: varios, extradata: undefined }
-                                    )
-                                }}
+                                key={vario.id}
+                                title={vario.nombre ?? 'Error'}
+                                onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'preciosVarios', dataModalPrecioM2: { vario } }))}
                                 style={styles.item}
                                 titleStyle={styles.itemTitle}
                             />
@@ -140,7 +111,7 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                         <List.Item
                             key="accesorios"
                             title="Accesorios"
-                            onPress={() => setModal({ visible: true, tipo: 'accesorios', objeto: series, extradata: undefined })}
+                            onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'accesorios' }))}
                             style={styles.item}
                             titleStyle={styles.itemTitle}
                         />
@@ -156,7 +127,7 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                         <View style={styles.inputContainer}>
                             <TextInput
                                 mode="outlined"
-                                value={preciosVarios.find(p => p.nombre === 'Mano de Obra')?.precio.toString() || ''}
+                                value={preciosVarios.find(p => p.nombre === preciosVariosEnum.manoDeObra)?.precio.toString() || ''}
                                 onChangeText={(text) => {
                                     if (/^\d*\.?\d*$/.test(text) || text === '') {
                                         setManoObra(text);
@@ -167,7 +138,7 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                                     !isEditing && styles.inputDisabled
                                 ]}
                                 contentStyle={styles.inputContent}
-                                right={<TextInput.Affix text="US$" />}
+                                right={<TextInput.Affix text="%" />}
                                 theme={{
                                     colors: {
                                         text: 'white',
@@ -206,8 +177,7 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                     <ModalSerie
                         visible={modal.tipo === 'serie'}
                         hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        serie={modal.objeto as SerieOption}
-                        perfiles={modal.extradata?.perfiles as PerfilesOption[]}
+                        {...modal.dataModalSerie}
                     />
                     <ModalColor
                         visible={modal.tipo === 'color'}
@@ -218,13 +188,13 @@ export default function EditPrecio({ precio, mapAberturas }: EditPrecioProps) {
                     <ModalPrecioM2
                         visible={modal.tipo === 'preciosVarios'}
                         hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        vario={modal.objeto as PreciosVariosOption}
+                        {...modal.dataModalPrecioM2}
                     />
 
                     <ModalAccesoriosSerie
                         visible={modal.tipo === 'accesorios'}
                         hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        series={modal.objeto as SerieOption[]}
+                        series={stateBD.series}
                     />
                 </>
                 )

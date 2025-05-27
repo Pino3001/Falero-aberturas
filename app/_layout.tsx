@@ -8,11 +8,11 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { BDProvider } from '@/contexts/BDContext';
+import ErrorBoundary from './utils/ErrorBoundary';
+import { View } from 'react-native';
+import { Text } from 'react-native-paper';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -60,5 +60,6 @@ function RootLayoutNav() {
         </Stack>
       </BDProvider>
     </ThemeProvider>
+
   );
 }
