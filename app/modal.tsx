@@ -3,7 +3,7 @@ import { Platform, StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 import { Button } from 'react-native-paper';
-import { dropTables } from './utils/utilsDB';
+import { dropTables, initializeSeriesTable } from './utils/utilsDB';
 
 export default function ModalScreen() {
   return (
@@ -17,6 +17,7 @@ export default function ModalScreen() {
       onPress={async () =>
       {
         await dropTables();
+        await initializeSeriesTable();
       }
        }>
         Eliminar DB

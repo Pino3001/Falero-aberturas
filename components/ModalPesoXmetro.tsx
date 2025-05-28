@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { PerfilesOption, useBD  } from '../contexts/BDContext';
+import { useBD  } from '../contexts/BDContext';
+import { PerfilesOption } from '@/app/utils/interfases';
 
 interface ModalPesoXmetroProps {
     visible: boolean;

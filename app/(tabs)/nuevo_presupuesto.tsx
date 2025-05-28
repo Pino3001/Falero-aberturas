@@ -6,31 +6,35 @@ import { Text, View } from '@/components/Themed';
 
 export default function TabOneScreen() {
   return (
-    <ScrollView style={{width: '100%', height: '100%'}}>
-    <KeyboardAwareScrollView // Para que el textImput no quede oculto por el teclado
-      enableOnAndroid={true}
-      extraScrollHeight={0}
-      contentContainerStyle={styles.containerKASV}
-      keyboardShouldPersistTaps="handled"
-    >
-      <TouchableWithoutFeedback // Para que pueda cerrar el teclado o cualquier menu al tocar cualquier parte de la pantalla
-      onPress={Keyboard.dismiss} 
-      accessible={false}
-      >  
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <ScrollView style={{ width: '100%', height: '100%' }}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+
         <View style={styles.container}>
           <EditScreenInfo path="app/(tabs)/index.tsx" />
         </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAwareScrollView>
-    </ScrollView>
+      </ScrollView>
+    </TouchableWithoutFeedback>
+
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    marginTop: 40,
-    width:'100%'
+    flex: 1,
+    paddingTop: 40,
+    width: '100%',
+    height: '100%'
+  },
+  scrollContent: {
+    flexGrow: 1, // Hace que el contenido ocupe el 100% si es necesario
+  },
+  innerContent: {
+    flex: 1, // Opcional: si quieres que el contenido interno también expanda
+    minHeight: '80%', // Alternativa para asegurar el alto completo
   },
   containerKASV: {
     flex: 1,

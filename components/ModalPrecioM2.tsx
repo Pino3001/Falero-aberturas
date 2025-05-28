@@ -1,4 +1,5 @@
-import { PreciosVariosOption, useBD} from '@/contexts/BDContext';
+import { PreciosVariosOption } from '@/app/utils/interfases';
+import {useBD} from '@/contexts/BDContext';
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';

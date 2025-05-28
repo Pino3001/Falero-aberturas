@@ -1,9 +1,11 @@
-import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/app/Data/variablesGlobales';
-import { CortinaOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption, useBD, VentanaPresupuestoOption } from '@/contexts/BDContext';
-import React from 'react';
+import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/app/utils/interfases';
+import GenerarPDF from '@/app/utils/pdfGenerator';
+import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/constants/variablesGlobales';
+import { useBD } from '@/contexts/BDContext';
+import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { Modal, View, TouchableWithoutFeedback, StyleProp, FlatList, Text } from 'react-native';
-import { Card, DataTable, Divider, Icon, IconButton, List } from 'react-native-paper';
+import { View, TouchableWithoutFeedback, StyleProp, FlatList, Text } from 'react-native';
+import { Button, Card, DataTable, Divider, Icon, IconButton, List, Portal, useTheme, Modal } from 'react-native-paper';
 import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
 
 interface ModalMostrarPresupuestoProps {
@@ -17,15 +19,16 @@ interface ModalMostrarPresupuestoProps {
 const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent, presupuesto }: ModalMostrarPresupuestoProps) => {
   const { stateBD } = useBD();
   const { series, colors, perfiles, preciosVarios, cortinas } = stateBD;
+  const [pdf, setPdf] = useState(false);
 
-  const gramosAluminio = (ventana: VentanaPresupuestoOption): number => {
+  const gramosAluminio = (ventana: AberturaPresupuestoOption): number => {
     const serie = series.find(x => x.id == ventana.id_serie);
     if (serie) {
       if (serie.nombre === seriesEnum.serie20) {
         const gramosAlumnio = (buscarPerfil(ventana, PerfilesEnum.MarcoSuperior).gramos_por_m * ventana.ancho +
           buscarPerfil(ventana, PerfilesEnum.MarcoInferior).gramos_por_m * ventana.ancho +
           buscarPerfil(ventana, PerfilesEnum.MarcoLateral).gramos_por_m * 2 * ventana.alto);
-        return gramosAlumnio;
+        return gramosAlumnio / 100000;
       }
       else if (serie.nombre == seriesEnum.serie25_2h) {
         const gramosAlumnio = (buscarPerfil(ventana, PerfilesEnum.MarcoSuperior).gramos_por_m * ventana.ancho +
@@ -35,7 +38,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
           buscarPerfil(ventana, PerfilesEnum.HojaSuperior).gramos_por_m * ventana.ancho +
           buscarPerfil(ventana, PerfilesEnum.HojaEngancheCentral).gramos_por_m * 2 * ventana.alto +
           buscarPerfil(ventana, PerfilesEnum.HojaLateral).gramos_por_m * 2 * ventana.alto);
-        return gramosAlumnio;
+        return gramosAlumnio / 100000;
       }
       else if (serie.nombre == seriesEnum.serie25_3h) {
         const gramosAlumnio = (buscarPerfil(ventana, PerfilesEnum.MarcoSuperior).gramos_por_m * ventana.ancho +
@@ -45,20 +48,18 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
           buscarPerfil(ventana, PerfilesEnum.HojaSuperior).gramos_por_m * ventana.ancho +
           buscarPerfil(ventana, PerfilesEnum.HojaEngancheCentral).gramos_por_m * 4 * ventana.alto +
           buscarPerfil(ventana, PerfilesEnum.HojaLateral).gramos_por_m * 2 * ventana.alto);
-        return gramosAlumnio;
+        return gramosAlumnio / 100000;
       }
     }
     return -1;
   }
 
-  const buscarPerfil = (ventana: VentanaPresupuestoOption, perfil_nombre: string): PerfilesOption => {
+  const buscarPerfil = (ventana: AberturaPresupuestoOption, perfil_nombre: string): PerfilesOption => {
     let perfilAux = perfiles.find(p => p.serie_id === ventana.id_serie && p.nombre === perfil_nombre);
-    console.log('serserieie', ventana.id_serie)
     if (perfilAux)
       return perfilAux;
     else {
       const serie = series.find(x => x.id == ventana.id_serie);
-      console.log('serie', serie)
       if (serie && serie.serie_id_hereda) {
         perfilAux = perfiles.find(p => p.serie_id === serie.serie_id_hereda && p.nombre === perfil_nombre)
         if (perfilAux)
@@ -68,176 +69,189 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
     return PerfilesOptionDefault;
   }
 
-  const costoVidrio = (ventana: VentanaPresupuestoOption): number => {
-    const areaVidrio = (ventana.ancho * ventana.alto) / 10000;
-    const costoM2Vidrio = preciosVarios.find(v => v.nombre === preciosVariosEnum.vidrio)?.precio;
+  const costoVidrio = (ventana: AberturaPresupuestoOption): number => {
+    const areaVidrio = ((ventana?.ancho || 0) * (ventana?.alto || 0)) / 10000;
+    const costoM2Vidrio = preciosVarios.find(v => v.nombre === preciosVariosEnum.vidrio)?.precio || 0;
     if (costoM2Vidrio === undefined) return 0;
     return areaVidrio * costoM2Vidrio;
   }
 
-  const costoMosquitero = (ventana: VentanaPresupuestoOption): number => {
-    const areaMosquitero = (ventana.ancho * ventana.alto) / 10000;
-    const costoM2Mosquitero = preciosVarios.find(v => v.nombre === preciosVariosEnum.vidrio)?.precio;
+  const costoMosquitero = (ventana: AberturaPresupuestoOption): number => {
+    const areaMosquitero = ((ventana?.ancho || 0) * (ventana?.alto || 0)) / 10000;
+    const costoM2Mosquitero = preciosVarios.find(v => v.nombre === preciosVariosEnum.vidrio)?.precio || 0;
     if (costoM2Mosquitero === undefined) return 0;
     return areaMosquitero * costoM2Mosquitero;
   }
 
-  const costoCortina = (ventana: VentanaPresupuestoOption): number => {
-    const areaCortina = (ventana.ancho * ventana.alto) / 10000;
-    const precioM2Cortina = cortinas.find(c => c.id === ventana.id_cortina)?.preciom2;
+  const costoCortina = (ventana: AberturaPresupuestoOption): number => {
+    const areaCortina = ((ventana?.ancho || 0) * (ventana?.alto || 0)) / 10000;
+    const precioM2Cortina = cortinas.find(c => c.id === ventana.id_cortina)?.preciom2 || 0;
     if (precioM2Cortina === null || precioM2Cortina === undefined) return 0;
     return areaCortina * precioM2Cortina;
   }
 
-  const costoAluminio = (ventana: VentanaPresupuestoOption): number => {
-    const pesoAluminio = gramosAluminio(ventana) / 100000;
-    console.log('peso del aluminio', pesoAluminio)
+  const costoAluminio = (ventana: AberturaPresupuestoOption): number => {
+    const pesoAluminio = gramosAluminio(ventana);
 
     let costoAluminio = 0;
-    let precioColor = colors.find(c => c.id === ventana.id_color_aluminio)?.precio;
-    console.log('precio del aluminio', precioColor)
+    let precioColor = colors.find(c => c.id === ventana.id_color_aluminio)?.precio || 0;
     if (precioColor != undefined) {
       costoAluminio = pesoAluminio * precioColor;
     }
     return costoAluminio;
   }
 
-  const costoManoDeObra = (ventana: VentanaPresupuestoOption): number => {
-    const manoAux = preciosVarios.find(v => v.nombre === preciosVariosEnum.manoDeObra)?.precio;
+  const costoManoDeObra = (ventana: AberturaPresupuestoOption): number => {
+    const manoAux = preciosVarios.find(v => v.nombre === preciosVariosEnum.manoDeObra)?.precio || 0;
     if (manoAux && manoAux > 0) {
-      return ((ventana.precio_unitario * manoAux) / (100 + manoAux)) * ventana.cantidad;
+      return (((ventana?.precio_unitario || 0) * manoAux) / (100 + manoAux)) * (ventana?.cantidad || 0);
     }
     return 0;
   }
-
+  const theme = useTheme();
   return (
-    <Modal
-      animationType={animationType}
-      transparent={transparent}
-      visible={visible}
-      onRequestClose={onClose}
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
-    >
-      <Card style={[styles.content]} >
-        <Card.Content style={{ flexDirection: 'row', gap: 15, width: '100%' }}>
-          <Card.Title style={{ justifyContent: 'flex-start', width: '70%' }} title="Presupuesto" titleStyle={{ color: 'black', fontWeight: 'bold', fontSize: 18 }} />
-          <IconButton
-            style={{ width: '30%', }}
-            icon="close"
-            iconColor="black"
-            size={24}
-            onPress={onClose}
-          />
-        </Card.Content>
-        <Card.Content style={{}}>
-          <View style={{ flexDirection: 'row', gap: 15 }}>
-            <Text style={{ color: 'black' }}>Nombre cliente: {presupuesto.nombre_cliente}</Text>
-            <Text style={{ color: 'black' }}>Fecha: {presupuesto.fecha.toLocaleDateString()}</Text>
+    <Portal>
+      <Modal
+        visible={visible}
+        onDismiss={onClose}
+        contentContainerStyle={styles.containerStyle}
+        style={styles.overlay}
+      >
+        <View style={[styles.content]} >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 18, margin: 10 }} >Presupuesto</Text>
+            <IconButton
+              style={{ margin: 5 }}
+              icon="close"
+              iconColor="black"
+              size={24}
+              onPress={onClose}
+            />
           </View>
-          <Divider style={{ borderBlockColor: '#6200ee', borderWidth: 0.5, margin: 3 }}></Divider>
-          <View>
-            <Text>Aberturas:</Text>
-          </View>
-          <FlatList
-            data={presupuesto.ventanas}
-            style={{ width: "100%", height: '100%' }}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <List.Section style={{ justifyContent: 'flex-start', alignContent: 'flex-start', paddingHorizontal: 0 }}>
-                <List.Accordion
-                  title={
-                    <Text style={{ fontSize: 11, color: 'black', fontWeight: 'bold' }}>
-                      {`${item.cantidad} - Ventana ${item.ancho} X ${item.alto}`}
-                    </Text>
-                  }
-                  style={{ height: 40, alignItems: 'center', paddingVertical: 0, backgroundColor: 'white' }}
-                >
-                  <View >
-                    <View style={{ paddingHorizontal: 25 }}>
-                      <View style={{ flexDirection: 'row', gap: 5 }}>
-                        <Text style={{ textAlign: 'center', fontSize: 12 }}>{`${item.cantidad} - Ventana`}</Text>
-                        <View style={{ flexDirection: 'row' }}>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{`${item.ancho}`}</Text>
-                          <Text style={{ color: 'grey', fontSize: 6 }}>{`cm`}</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{`x `}</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{`${item.alto}`}</Text>
-                          <Text style={{ color: 'grey', fontSize: 6 }}>{`cm`}</Text>
+          <View style={styles.listContainer}>
+            <View style={{ flexDirection: 'row', gap: 15, justifyContent: 'space-between' }}>
+              <Text style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>Cliente: {presupuesto?.nombre_cliente || ''}</Text>
+              <Text style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>Fecha: {presupuesto.fecha?.toLocaleDateString()}</Text>
+            </View>
+            <Divider style={{ borderBlockColor: '#6200ee', borderWidth: 0.5, margin: 5 }}></Divider>
+            <View style={{ marginHorizontal: 10, margin: 5 }}>
+              <Text style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>Lista de aberturas:</Text>
+            </View>
+            <FlatList
+              data={presupuesto.ventanas}
+              style={{ width: "100%" }}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <List.Section style={{ width: '100%', marginVertical: 6 }}>
+                  <List.Accordion
+                    title={
+                      <View style={{
+                        flexDirection: 'row',
+                      }}>
+                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>{item?.cantidad || ""} Ventana </Text>
+                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>{item?.ancho || 0}</Text>
+                        <Text style={{ fontSize: 6 }}> cm</Text>
+                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>` × </Text>
+                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>{item?.alto || 0}</Text>
+                        <Text style={{ fontSize: 6 }}>cm </Text>
+                        <Text style={{ fontSize: 15, color: 'red' }}>{((item?.precio_unitario || 0) *( item?.cantidad || 0)).toFixed(1)} U$S</Text>
+                      </View>
+                    }
+                    style={{ backgroundColor: 'white' }}
+                    right={() => null}
+                    left={() => <Icon source="star" size={15} color="#6200ee" />}
+                  >
+                    <View style={{ paddingLeft: 0 }}>
+                      <View style={{ paddingHorizontal: 20 }}>
+                        <View style={{ alignContent: 'center' }}>
+                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{series.find(c => c.id === item.id_serie)?.nombre || ''}</Text>
                         </View>
-                        <Text style={{ textAlign: 'center', fontSize: 12 }}>{`${series.find(s => s.id === item.id_serie)?.nombre || ''}`}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: 5 }}>
-                        <Text style={{ textAlign: 'center', fontSize: 12 }}>{`Color "${colors.find(c => c.id === item.id_color_aluminio)?.color || ''}"`}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: 5 }}>
-                        {item.id_cortina && item.id_cortina > 1 &&
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{`${cortinas.find(c => c.id === item.id_cortina)?.tipo}`}</Text>
-                        }
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: 5 }}>
-                        {item.mosquitero &&
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{`Con mosquitero`}</Text>
-                        }
-                      </View>
-                    <Divider style={{ margin: 3}}></Divider>
-                    </View>
-                    <View style={{ paddingHorizontal: 25 }}>
-                      <Text style={{ textAlign: 'center', fontSize: 14 }}>Costos</Text>
-
-                      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                        <Text style={{ textAlign: 'center', fontSize: 12 }}>Aluminio:</Text>
-                        <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoAluminio(item)?.toFixed(1) || 0} US$`}</Text>
-                      </View>
-
-                      {item.vidrio &&
-                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>Vidrio:</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoVidrio(item)?.toFixed(1) || 0} US$`}</Text>
+                        <View style={{ flexDirection: 'row', gap: 4, justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: 12 }}>{`Aluminio "${colors.find(c => c.id === item.id_color_aluminio)?.color || ''}"`}</Text>
+                          <Text style={{ fontSize: 12 }}>{`Cant: ${gramosAluminio(item)?.toFixed(2) || 0} kg`}</Text>
                         </View>
-                      }
-
-                      {item.mosquitero &&
-                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>Mosquitero:</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoMosquitero(item)?.toFixed(1) || 0} US$`}</Text>
-                        </View>
-                      }
-
-                      {item.id_cortina && item.id_cortina > 1 &&
-                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{cortinas.find(c => c.id === item.id_cortina)?.tipo || 'No especificado'}</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoCortina(item)?.toFixed(1) || 0} US$`}</Text>
-                        </View>
-                      }
-
-                      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                        <Text style={{ textAlign: 'center', fontSize: 12 }}>{`Accesorios`}</Text>
-                        <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${series.find(s => s.id == item.id_serie)?.precio_accesorios || 0} US$`}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                        <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Mano De Obra</Text>
-                        <Text style={{ textAlign: 'center', fontSize: 14, color: 'red' }}>{`${costoManoDeObra(item)?.toFixed(1) || 0} US$`}</Text>
                       </View>
                       <Divider style={{ margin: 3 }}></Divider>
-                      <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                        <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Total</Text>
-                        <Text style={{ textAlign: 'center', fontSize: 14, color: 'red' }}>{`${Math.round(item.precio_unitario * item.cantidad * 10) / 10} US$`}</Text>
+
+                      <View style={{ paddingHorizontal: 25 }}>
+                        <Text style={{ textAlign: 'center', fontSize: 14 }}>Costos</Text>
+
+                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                          <Text style={{ textAlign: 'center', fontSize: 12 }}>Aluminio:</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoAluminio(item)?.toFixed(1) || 0} US$`}</Text>
+                        </View>
+
+                        {item.vidrio ? 
+                          <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                            <Text style={{ textAlign: 'center', fontSize: 12 }}>Vidrio:</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoVidrio(item)?.toFixed(1) || 0} US$`}</Text>
+                          </View>
+                          : null
+                        }
+
+                        {item.mosquitero ?
+                          <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                            <Text style={{ textAlign: 'center', fontSize: 12 }}>Mosquitero:</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoMosquitero(item)?.toFixed(1) || 0} US$`}</Text>
+                          </View>
+                          : null
+                        }
+
+                        {item.id_cortina && item.id_cortina > 1 ?
+                          <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                            <Text style={{ textAlign: 'center', fontSize: 12 }}>{cortinas.find(c => c.id === item.id_cortina)?.tipo || 'No especificado'}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoCortina(item)?.toFixed(1) || 0} US$`}</Text>
+                          </View>
+                          : null
+                        }
+
+                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{`Accesorios`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${series.find(s => s.id == item.id_serie)?.precio_accesorios || 0} US$`}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                          <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Mano De Obra</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, color: 'red' }}>{`${costoManoDeObra(item)?.toFixed(1) || 0} US$`}</Text>
+                        </View>
+                        <Divider style={{ margin: 3 }}></Divider>
+                        <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
+                          <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Sub Total</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, color: 'red' }}>{`${Math.round(((item?.precio_unitario || 0) *( item?.cantidad || 0)) * 10) / 10} US$`}</Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </List.Accordion>
-                <Divider style={{ margin: 3 }}></Divider>
-
-              </List.Section>
-            )}
-            ListEmptyComponent={<List.Item title="No hay aberturas" titleStyle={{ color: 'black', fontSize: 13 }} />}
-            initialNumToRender={5}
-            maxToRenderPerBatch={5}
-            windowSize={10}
-          />
-          <Divider style={{ borderBlockColor: '#6200ee', borderWidth: 0.5 }}></Divider>
-        </Card.Content>
-      </Card>
-    </Modal>
+                  </List.Accordion>
+                </List.Section>
+              )}
+              ListEmptyComponent={<List.Item title="No hay aberturas" titleStyle={{ color: 'black', fontSize: 13 }} />}
+              initialNumToRender={5}
+              maxToRenderPerBatch={5}
+              windowSize={10}
+            />
+            <Divider style={{ margin: 3 }}></Divider>
+            <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', paddingHorizontal: 25, marginVertical: 10 }}>
+              <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>Total</Text>
+              <Text style={{ textAlign: 'center', fontSize: 16, color: 'red' }}>{presupuesto.precio_total?.toFixed(1) || 0} U$S</Text>
+            </View>
+            <View style={{ justifyContent: 'center', paddingHorizontal: 25, marginVertical: 10 }}>
+              <Button style={{ backgroundColor: '#6200ee', borderRadius: 4, justifyContent: 'center' }} labelStyle={{ fontSize: 16 }}
+                textColor='white'
+                onPress={() => { setPdf(true) }} >
+                Compartir
+                <Icon
+                  source="share"  // o "share-variant"
+                  color="white"
+                  size={20}
+                />
+              </Button>
+            </View>
+          </View>
+        </View>
+        {pdf &&
+          <GenerarPDF
+            presupuestoPdf={presupuesto} />}
+      </Modal>
+    </Portal>
   );
 };
 
@@ -245,37 +259,27 @@ export default ModalMostrarPresupuesto;
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8d7da'
-  },
-  errorText: {
-    color: '#721c24'
+  containerStyle: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    alignSelf: 'center',
+    width: '90%',
+    height: '90%',
+    paddingHorizontal: 0
   },
   content: {
     flex: 1,
     width: '90%',
     height: '90%',
     alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 5,
-    paddingHorizontal: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+
+  },
+  listContainer: {
+    width: '100%',
+    flex: 1,
   },
 });

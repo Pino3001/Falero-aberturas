@@ -3,9 +3,11 @@ import { StyleSheet, Image, View, TouchableOpacity, Alert } from 'react-native';
 import { TextInput, Button, Menu, List, Card, Text, IconButton, Divider, FAB, DataTable } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import VentanaSeleccionada from './VentanaSeleccionada';
+import AgregarAbertura, { AgregarAberturaRef } from './AgregarAbertura';
 import { Dropdown } from 'react-native-element-dropdown';
-import { SerieOption, ColorOption, CortinaOption, PresupuestosOption, VentanaPresupuestoOption, useBD, PresupuestosOptionDefault } from '../contexts/BDContext';
+import { useBD } from '../contexts/BDContext';
+import { AberturasEnum } from '@/constants/variablesGlobales';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, PresupuestosOptionDefault, SerieOption } from '@/app/utils/interfases';
 const ventanaIcon = require('../assets/images/ventana.png');
 const ventana3HojasIcon = require('../assets/images/ventana con 3 hojas.png');
 const ventanaCortinaIcon = require('../assets/images/ventana con cortina.png');
@@ -30,25 +32,22 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
 
   const [presupuesto, SetPresupuesto] = useState<PresupuestosOption>(PresupuestosOptionDefault);
   const [mostrarAbertura, setMostrarAbertura] = useState(false);
-
+  const [agregarCerrado, setAgregarCerrado] = useState(false);
   const handleNombreChange = (texto: string) => {
     SetPresupuesto((prevPresupuesto) => ({ ...prevPresupuesto, nombre_cliente: texto }));
   };
-  const [abertura, setAbertura] = useState('');
-  const aberturasCombo = [
-    { label: 'Ventana', value: '1' },
-    { label: 'Puerta', value: '2' }
-  ];
+
+
   const contador = useRef(0);
-  const [aberturaEditar, setAberturaEditar] = useState<VentanaPresupuestoOption | undefined>(undefined);
-  const handleComfirmarCreacion = (ventana: VentanaPresupuestoOption) => {
+  const [aberturaEditar, setAberturaEditar] = useState<AberturaPresupuestoOption | undefined>(undefined);
+  const handleComfirmarCreacion = (ventana: AberturaPresupuestoOption) => {
     contador.current -= 1;
     // id negativo significa que no esta en bd
     SetPresupuesto((prevPresupuesto) => ({ ...prevPresupuesto, ventanas: [...prevPresupuesto.ventanas, { ...ventana, id: contador.current }] }));
     setMostrarAbertura(false);
   }
 
-  const handleComfirmarActualizacion = (ventana: VentanaPresupuestoOption) => {
+  const handleComfirmarActualizacion = (ventana: AberturaPresupuestoOption) => {
     SetPresupuesto(prevPresupuesto => {
       const index = prevPresupuesto.ventanas.findIndex(item => item.id === ventana.id);
       if (index === -1) return prevPresupuesto; // No se encontró el elemento
@@ -81,14 +80,14 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
         },
         {
           text: 'Guardar',
-          onPress: async ()  => {
-            try{
+          onPress: async () => {
+            try {
               const precioTotalTemp = presupuesto.ventanas.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
-              const respuesta =await insertarPresupuestoConItemsBDContext({...presupuesto, precio_total: precioTotalTemp});
+              const respuesta = await insertarPresupuestoConItemsBDContext({ ...presupuesto, precio_total: precioTotalTemp });
               SetPresupuesto(PresupuestosOptionDefault);
               console.log("respuesta:", respuesta);
             }
-            catch(ex){
+            catch (ex) {
               console.log(ex);
             }
 
@@ -97,7 +96,6 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
       ]
     )
   }
-
 
   const handleEliminarAbertura = (id: number) => {
     Alert.alert(
@@ -120,169 +118,164 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
     );
   };
 
+  const dropdownRef = useRef<AgregarAberturaRef>(null);
+
   return (
     <View style={styles.getStartedContainer}>
-      <Card style={styles.card}>
-        <Card.Content style={{ flexDirection: 'column', gap: 15, width: '100%' }}>
-          <TextInput // Imput nombre de usuario del presupuesto (OBLIFATORIO)
-            mode="outlined"
-            label="Nombre Cliente"
-            placeholder="Nombre Cliente"
-            left={<TextInput.Icon icon="account" />}
-            style={styles.input}
-            theme={{
-              colors: {
-                primary: 'white',  // Color primario 
-                error: '#f44336',    // Color de error 
-              },
-            }}
-            value={presupuesto.nombre_cliente}
-            onChangeText={handleNombreChange}
-          />
-          {<Card style={styles.mensajeContainer}>
-            <Card.Title title="Presupuesto" />
 
-            <Card.Content style={{ width: '100%', paddingHorizontal: 0 }}>
-              <Divider style={{ marginBottom: 8 }} />
-              {presupuesto.ventanas.length > 0 ? (
-                presupuesto.ventanas.map((ventana) => (
-                  <List.Item
-                    key={ventana.id}
-                    title={`${ventana.cantidad} Ventana${Number(ventana.cantidad) > 1 ? 's' : ''} - ${ventana.ancho}cm X ${ventana.ancho}cm`}
-                    style={styles.listItem}
-                    titleStyle={styles.listItemTitle}
-                    left={() => (
-                      <View style={styles.leftIconContainer}>
-                        <Image
-                          source={
-                            ventana.id_serie === 3
-                              ? ventana3HojasIcon
-                              : ventana.id !== undefined && ventana.id_cortina !== undefined
-                                ? ventanaCortinaIcon
-                                : ventanaIcon
-                          }
-                          style={styles.ventanaIcon}
-                          resizeMode="contain"
-                        />
-                      </View>
-                    )}
-                    right={props => (
-                      <View style={styles.rightIconContainer}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            console.log("editar pressed");
-                            setAberturaEditar(ventana)
-                          }}
-                          style={styles.actionButton}
-                          disabled={(mostrarAbertura && abertura === "1") || aberturaEditar !== undefined}
-                        >
-                          <MaterialCommunityIcons
-                            name="pencil"
-                            size={24}
-                            color="white"
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleEliminarAbertura(ventana.id)}
-                          style={styles.actionButton}
-                          disabled={(mostrarAbertura && abertura === "1") || aberturaEditar !== undefined}
-                        >
-                          <MaterialCommunityIcons
-                            name="delete"
-                            size={24}
-                            color="#ff6b6b"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  />
-                ))
-              ) : (
-                <Text style={{ textAlign: 'center', color: 'white' }}>Lista de aberturas vacia!!!</Text>
-              )}
-              <Divider style={{ marginTop: 8, marginBottom: 8 }} />
-              {
-                presupuesto.ventanas.length > 0 && (
-                  <Text style={styles.mensajeTexto}>Precio total: {presupuesto.ventanas.reduce((total, item) => total + item.precio_unitario, 0).toFixed(1)} US$</Text>
-                )
-              }{presupuesto.ventanas.length > 0 && (
-                <View style={{ flexDirection: 'row', gap: 10, alignContent: 'center', justifyContent: 'center', marginTop: 10 }}>
-                  <TouchableOpacity style={{
-                    backgroundColor: '#2EBD2E',
-                    borderRadius: 6,
-                    height: 30,
-                    width: '40%',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                    disabled={(mostrarAbertura && abertura === "1") || aberturaEditar !== undefined}
-                    onPress={() => handleGuardarPresupuesto()}
-                  > <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Guardar</Text> </TouchableOpacity>
-                  <TouchableOpacity
-                    disabled={(mostrarAbertura && abertura === "1") || aberturaEditar !== undefined}
-                    style={{
-                      backgroundColor: '#BD2E2E',
-                      borderRadius: 6,
-                      height: 30,
-                      width: '40%',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}> <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Limpiar</Text> </TouchableOpacity>
-                </View>
-              )}
-            </Card.Content>
-          </Card>
-          }
+      <TextInput // Imput nombre de usuario del presupuesto (OBLIFATORIO)
+        mode="outlined"
+        label="Nombre Cliente"
+        placeholderTextColor={'black'}
+        textColor='black'
+        cursorColor='#6200ee'
+        placeholder="Nombre Cliente"
+        left={<TextInput.Icon icon="account" color={'black'} />}
+        style={styles.input}
+        theme={{
+          colors: {
+            primary: 'black', // Color del label cuando está activo/focus (cámbialo si lo necesitas)
+            onSurfaceVariant: 'black', // Color del label cuando está inactivo
+          },
+        }}
+        value={presupuesto.nombre_cliente}
+        onChangeText={handleNombreChange}
+      />
 
-          <Button // Agregar aberturas al presupuesto
-            mode="contained"
-            onPress={() => setMostrarAbertura(!mostrarAbertura)}
-            icon={() => <FontAwesome name="plus" size={20} color="white" />}
-            style={styles.button}
-            labelStyle={styles.label}
-            disabled={(mostrarAbertura && abertura === "1") || aberturaEditar !== undefined}
-
-          >
-            Agregar Aberturas
-          </Button>
-        </Card.Content>
-      </Card >
-      {/* View que aparece al presionar el botón "Agregar Aberturas"*/
-        /* Muestra todas las aberturas del sistema para ser seleccionadas y agregadas al presupuesto */
-      }
-      <View >
-        {mostrarAbertura && (
-          <>
-            <Card style={styles.card}>
-              <Card.Content>
-                <Dropdown
-                  data={aberturasCombo}
-                  labelField="label"
-                  valueField="value"
-                  value={abertura}
-                  onChange={item => setAbertura(item.value)}
-                  placeholder="Seleccione abertura"
-                  selectedTextStyle={{ color: 'white', textAlign: 'center', fontSize: 20 }}
-                  style={styles.dropdown}
-                  placeholderStyle={{ color: 'white', textAlign: 'center', fontSize: 20 }}
-                  containerStyle={{ backgroundColor: '#000' }}
-                  activeColor="#6200ee"
-                  itemTextStyle={{ color: 'white' }}
-                  iconColor="white"
-                  iconStyle={{
-                    width: 34,
-                    height: 34,
-                  }}
-                  showsVerticalScrollIndicator={false}
+      <Divider style={{ marginHorizontal: 10 }} />
+      <Text style={{ fontSize: 14, textAlign: 'center' }}>Listado de Aberturas</Text>
+      {presupuesto.ventanas.length > 0 ? (
+        presupuesto.ventanas.map((ventana) => (
+          <List.Item
+            key={ventana.id}
+            title={`${ventana.cantidad} ${ventana.tipo_abertura}${Number(ventana.cantidad) > 1 ? 's' : ''} - ${ventana.ancho}cm X ${ventana.ancho}cm`}
+            style={styles.listItem}
+            titleStyle={styles.listItemTitle}
+            left={() => (
+              <View style={styles.leftIconContainer}>
+                <Image
+                  source={
+                    ventana.id_serie === 3
+                      ? ventana3HojasIcon
+                      : ventana.id !== undefined && ventana.id_cortina !== undefined
+                        ? ventanaCortinaIcon
+                        : ventanaIcon
+                  }
+                  style={styles.ventanaIcon}
                 />
-              </Card.Content>
-            </Card>
-            {abertura === '1' && <VentanaSeleccionada handleDone={handleComfirmarCreacion} handleClose={handleClose} />}
-          </>
+              </View>
+            )}
+            right={props => (
+              <View style={styles.rightIconContainer}>
+                <TouchableOpacity
+                  onPress={() => {
+                    console.log("editar pressed");
+                    setAberturaEditar(ventana)
+                  }}
+                  style={styles.actionButton}
+                  disabled={(mostrarAbertura && aberturaEditar != null) || aberturaEditar !== undefined}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil"
+                    size={20}
+                    color="white"
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleEliminarAbertura(ventana.id)}
+                  style={styles.actionButton}
+                  disabled={(mostrarAbertura && aberturaEditar != null) || aberturaEditar !== undefined}
+                >
+                  <MaterialCommunityIcons
+                    name="delete"
+                    size={20}
+                    color="#ee6200"
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )))
+        : (
+          <Text style={{ textAlign: 'center', color: 'white', fontSize: 16 }}>Lista de aberturas vacia!!!</Text>
         )}
-        {aberturaEditar && <VentanaSeleccionada ventanaAEditar={aberturaEditar} handleDone={handleComfirmarActualizacion} handleClose={handleClose} />}
-      </View>
-
+      <Divider style={{ margin: 10 }} />
+      {presupuesto.ventanas.length > 0 && (
+        <Text style={styles.mensajeTexto}>
+          {`Precio total:  `}
+          <Text style={[styles.mensajeTexto, { color: 'rgb(232, 121, 42)' }]}>{presupuesto.ventanas.reduce((total, item) => total + item.precio_unitario, 0).toFixed(1)} US$</Text>
+        </Text>
+      )}
+      {presupuesto.ventanas.length > 0 && (
+        <View style={{ flexDirection: 'row', gap: 10, alignContent: 'center', justifyContent: 'center', marginTop: 10 }}>
+          <TouchableOpacity style={{
+            backgroundColor: '#6200ee',
+            borderRadius: 6,
+            borderColor: 'rgb(243, 243, 243)',
+            borderWidth: 1.5,
+            height: 40,
+            width: '40%',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+            disabled={(mostrarAbertura) || aberturaEditar !== undefined}
+            onPress={() => handleGuardarPresupuesto()}
+          > <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'white' }}>Guardar</Text> </TouchableOpacity>
+          <TouchableOpacity
+            disabled={(mostrarAbertura) || aberturaEditar !== undefined}
+            style={{
+              backgroundColor:'#9e9e9e',
+              borderColor: 'rgb(243, 243, 243)',
+              borderWidth: 1.5,
+              borderRadius: 6,
+              height: 40,
+              width: '40%',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}> <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'white' }}>Limpiar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {(!mostrarAbertura || agregarCerrado) &&
+        <FAB
+          icon="plus"
+          style={{
+            position: 'absolute',
+            margin: 16,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#6200ee'
+          }}
+          onPress={() => {
+            if (agregarCerrado && dropdownRef.current) {
+              dropdownRef.current.open();
+              setAgregarCerrado(false);
+            }
+            else {
+              setMostrarAbertura(true);
+            }
+          }}
+        />
+      }
+      {mostrarAbertura ? (
+        <AgregarAbertura
+          handleDone={handleComfirmarCreacion}
+          ref={dropdownRef}
+          handleClose={handleClose}
+          visible={mostrarAbertura}
+          hideModal={() => setAgregarCerrado(true)}
+        />
+      ) : null}
+      {aberturaEditar ? (
+        <AgregarAbertura
+          ventanaAEditar={aberturaEditar}
+          ref={dropdownRef}
+          handleDone={handleComfirmarActualizacion}
+          handleClose={handleClose}
+          visible={true}
+          hideModal={() => setAberturaEditar(undefined)}
+        />
+      ) : null}
     </View >
   );
 }
@@ -291,13 +284,15 @@ const styles = StyleSheet.create({
   getStartedContainer: {
     flexDirection: 'column',
     gap: 15,
+    height: '100%',
   },
   containerAberturas: {
     flexDirection: 'row',
     gap: 15,
   },
   input: {
-    backgroundColor: 'grey',
+    color: 'black',
+    backgroundColor: 'rgb(243, 243, 243)',
     width: '90%',
     height: 40,
     alignSelf: 'center', // Centrar horizontalmente
@@ -323,32 +318,13 @@ const styles = StyleSheet.create({
     color: 'white',
   },
 
-  mensajeContainer: {
-    width: '100%',
-    borderRadius: 5,
-    padding: 0,
-    marginTop: 10,
-  },
   mensajeTexto: {
     color: 'white',
     textAlign: 'center',
-  },
-  dropdown: {
-    width: '90%',
-    height: 40,
-    alignSelf: 'center',
-    alignContent: 'center',
-    borderColor: 'white', // Color del borde
-    borderWidth: 0.3,
-    borderRadius: 4,
-    backgroundColor: 'grey',
+    fontSize: 18,
   },
   listItem: {
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    minHeight: 30,
+    height: 45
   },
   listaContainer: {
     backgroundColor: 'transparent',
@@ -356,28 +332,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   listItemTitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'white',
-    fontWeight: '500',
   },
   iconContainer: {
     backgroundColor: 'transparent',
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-    paddingRight: 1,
+    justifyContent: 'space-between',
   },
   leftIconContainer: {
     backgroundColor: 'transparent',
     justifyContent: 'center',
-    width: 40,
-    height: 40,
+    paddingLeft: 30,
     alignItems: 'center'
   },
   ventanaIcon: {
     backgroundColor: 'transparent',
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     tintColor: 'white'
   },
   card: {
@@ -391,8 +363,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   actionButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'stretch'
   },
   titleTable: {
     fontSize: 9,

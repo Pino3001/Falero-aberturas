@@ -1,7 +1,8 @@
-import { BDState, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, VentanaPresupuestoOption } from '@/contexts/BDContext';
+import { BDState } from '@/contexts/BDContext';
 import { parse } from '@babel/core';
 import * as SQLite from 'expo-sqlite';
-import { coloresEnum, cortinasEnum, PerfilesEnum, preciosVariosEnum, seriesEnum, Tablas } from '../Data/variablesGlobales';
+import { coloresEnum, cortinasEnum, PerfilesEnum, preciosVariosEnum, seriesEnum, Tablas, AberturasEnum } from '@/constants/variablesGlobales';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from './interfases';
 const db = SQLite.openDatabaseSync('falero.db');
 console.log('Database opened:', db);
 
@@ -27,12 +28,13 @@ const serieData: SerieOption[] = [
     { nombre: seriesEnum.serie20, id: 1, precio_accesorios: 35, serie_id_hereda: null },
     { nombre: seriesEnum.serie25_2h, id: 2, precio_accesorios: 35, serie_id_hereda: null },
     { nombre: seriesEnum.serie25_3h, id: 3, precio_accesorios: 40, serie_id_hereda: 2 },
+    { nombre: seriesEnum.serieA30, id: 4, precio_accesorios: 0, serie_id_hereda: null }
 ];
 
 
 const cortinaData: CortinaOption[] = [
     { tipo: cortinasEnum.ninguna, id: -1, preciom2: null },
-    { tipo:cortinasEnum.cortinapvch25, id: -1, preciom2: 87 },
+    { tipo: cortinasEnum.cortinapvch25, id: -1, preciom2: 87 },
     { tipo: cortinasEnum.cortinapanelaluminioH25, id: -1, preciom2: 43 },
     { tipo: cortinasEnum.monoblockenpvc, id: -1, preciom2: 110 },
     { tipo: cortinasEnum.monoblockconpanelaluminio, id: -1, preciom2: 160 },
@@ -53,6 +55,8 @@ const perfilesData: PerfilesOption[] = [
     { id: -1, nombre: PerfilesEnum.MarcoSuperior, serie_id: 3, gramos_por_m: 1463 },
     { id: -1, nombre: PerfilesEnum.MarcoInferior, serie_id: 3, gramos_por_m: 1364 },
     { id: -1, nombre: PerfilesEnum.MarcoLateral, serie_id: 3, gramos_por_m: 1528 },
+    { id: -1, nombre: PerfilesEnum.MarcoFijo, serie_id: 4, gramos_por_m: 649 },
+    { id: -1, nombre: PerfilesEnum.Contravidrio, serie_id: 4, gramos_por_m: 122 },
 ];
 
 
@@ -249,7 +253,7 @@ export async function initializeSeriesTable(): Promise<BDState> {
                     id: number;
                     nombre_cliente: string;
                     fecha: Date;
-                    ventanas: VentanaPresupuestoOption[],
+                    ventanas: AberturaPresupuestoOption[],
                     precio_total: number;
                 } */
 
@@ -263,7 +267,7 @@ export async function initializeSeriesTable(): Promise<BDState> {
             precio_total REAL NOT NULL);`
         );
 
-        /* export interface VentanaPresupuestoOption {
+        /* export interface AberturaPresupuestoOption {
             id: number;
             ancho: number;
             largo: number;
@@ -275,9 +279,10 @@ export async function initializeSeriesTable(): Promise<BDState> {
             precio: number;
         } */
 
-        +        // --TABLA PRESUPUESTOS--
-            await db.execAsync(`CREATE TABLE IF NOT EXISTS ${Tablas.ventanapresupuesto} (
+        // --TABLA PRESUPUESTOS--
+        await db.execAsync(`CREATE TABLE IF NOT EXISTS ${Tablas.aberturaPresupuesto} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tipo_abertura TEXT NOT NULL,
             id_presupuesto INTEGER NOT NULL,
             ancho INTEGER NOT NULL,
             alto INTEGER NOT NULL,
@@ -291,8 +296,7 @@ export async function initializeSeriesTable(): Promise<BDState> {
             FOREIGN KEY (id_color_aluminio) REFERENCES ${Tablas.coloresAluminio} (id),
             FOREIGN KEY (id_serie) REFERENCES ${Tablas.series} (id),
             FOREIGN KEY (id_cortina) REFERENCES ${Tablas.cortinas} (id),
-            FOREIGN KEY (id_presupuesto) REFERENCES ${Tablas.presupuestos} (id));`
-            );
+            FOREIGN KEY (id_presupuesto) REFERENCES ${Tablas.presupuestos} (id));`);
         return {
             colors: await getColorAluminio(),
             cortinas: await getCortinas(),
@@ -324,17 +328,18 @@ export const insertarPresupuestoConItems = async (
 
             const presupuestoId = presupuestoResult.lastInsertRowId as number;
             presupuesto_result = { ...presupuesto_result, id: presupuestoId };
-            let ventanas_agregadas: VentanaPresupuestoOption[] = [];
+            let ventanas_agregadas: AberturaPresupuestoOption[] = [];
             // 2. Insertar todos los items asociados
             for (const ventana of presupuesto.ventanas) {
                 let result = await txn.runAsync(`
-                    INSERT INTO ${Tablas.ventanapresupuesto} 
-                    (id_presupuesto, ancho, alto, id_color_aluminio, id_serie, id_cortina ,vidrio, mosquitero, cantidad, precio_unitario) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    INSERT INTO ${Tablas.aberturaPresupuesto} 
+                    (id_presupuesto, ancho, alto, tipo_abertura, id_color_aluminio, id_serie, id_cortina ,vidrio, mosquitero, cantidad, precio_unitario) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 `, [
                     presupuestoId,
                     ventana.ancho,
                     ventana.alto,
+                    ventana.tipo_abertura,
                     ventana.id_color_aluminio,
                     ventana.id_serie,
                     ventana.id_cortina ? ventana.id_cortina : null,
@@ -407,10 +412,10 @@ export async function getPresupuestoByID(id: number): Promise<PresupuestosOption
         presupuestoResult.fecha = new Date(presupuestoResult.fecha);
 
         // Obtener las ventanas asociadas al presupuesto
-        const ventanasResult = await db.getAllAsync<VentanaPresupuestoOption>(
+        const ventanasResult = await db.getAllAsync<AberturaPresupuestoOption>(
             `SELECT id, ancho, alto, id_color_aluminio, id_serie, id_cortina, 
             vidrio, mosquitero, cantidad, precio_unitario
-            FROM ${Tablas.ventanapresupuesto} 
+            FROM ${Tablas.aberturaPresupuesto} 
             WHERE id_presupuesto = ?`,
             [id]
         );
@@ -479,7 +484,7 @@ async function calcularPrecioVidrio(
     anchoV: number,
 ): Promise<number> {
     try {
-        const vidrio = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = ?`,[preciosVariosEnum.vidrio]);
+        const vidrio = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = ?`, [preciosVariosEnum.vidrio]);
 
         // Manejar el caso donde vidrio o vidrio.precio es undefined
         const precioUnitario = vidrio?.precio ?? 0;
@@ -550,27 +555,35 @@ async function calculoPesoVentana(
 
     let pesoTotal = 0;
     perfilesDeLaSerie.map(perfil => {
-        let pesoPerfil = 0;
+        let longitudPerfil = 0;
+
         if (perfil.nombre === PerfilesEnum.MarcoSuperior ||
             perfil.nombre === PerfilesEnum.MarcoInferior ||
             perfil.nombre === PerfilesEnum.HojaSuperior ||
             perfil.nombre === PerfilesEnum.HojaInferior) {
-            pesoPerfil = anchoV / 100;
+            longitudPerfil = anchoV / 100;
         }
         if (perfil.nombre === PerfilesEnum.MarcoLateral || perfil.nombre === PerfilesEnum.HojaLateral) {
-            pesoPerfil = (2 * altoV) / 100;
+            longitudPerfil = (2 * altoV) / 100;
         }
         if (serie_id === 2) {
             if (perfil.nombre === PerfilesEnum.HojaEngancheCentral) {
-                pesoPerfil = (2 * altoV) / 100;
+                longitudPerfil = (2 * altoV) / 100;
             }
         }
         if (serie_id === 3) {
             if (perfil.nombre === PerfilesEnum.HojaEngancheCentral) {
-                pesoPerfil = (4 * altoV) / 100;
+                longitudPerfil = (4 * altoV) / 100;
             }
         }
-        const pesoTemp = pesoPerfil * perfil.gramos_por_m;
+        if (perfil.nombre === PerfilesEnum.Contravidrio) {
+            longitudPerfil = ((2 * altoV) + (2 * anchoV)) / 100;
+        }
+        if (perfil.nombre === PerfilesEnum.MarcoFijo) {
+            longitudPerfil = ((2 * altoV) + (2 * anchoV)) / 100;
+        }
+
+        const pesoTemp = longitudPerfil * perfil.gramos_por_m;
         pesoTotal += pesoTemp;
     })
 
@@ -605,7 +618,7 @@ async function calcularPrecioCortina(ancho: number, alto: number, id_cortina: nu
 
 
 export async function calcularPrecioVentana(
-    ventana: VentanaPresupuestoOption,
+    ventana: AberturaPresupuestoOption,
 ): Promise<number> {
     try {
         // Validación básica de inputs
@@ -640,7 +653,7 @@ export async function calcularPrecioVentana(
 
         const varioManoObra = await db.getFirstAsync<PreciosVariosOption>(
             `SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = ?`
-        ,[preciosVariosEnum.manoDeObra]) || { precio: 1 }; // Valor por defecto 1 si no existe
+            , [preciosVariosEnum.manoDeObra]) || { precio: 1 }; // Valor por defecto 1 si no existe
 
         // Cálculo final con protección contra NaN
         const sumaComponentes = precioAluminioColor + precioVidrio + precioMosquitero + (serieAccesorio.precio_accesorios || 0) + precioCortina;
@@ -665,8 +678,8 @@ export async function dropTables(): Promise<void> {
     try {
         await db.withExclusiveTransactionAsync(async () => {
             // Eliminar tablas en orden inverso para respetar las dependencias de claves foráneas
-            await db.execAsync(`DROP TABLE IF EXISTS ${Tablas.ventanapresupuesto};`);
-            console.log(`Tabla ${Tablas.ventanapresupuesto} eliminada`);
+            await db.execAsync(`DROP TABLE IF EXISTS ${Tablas.aberturaPresupuesto};`);
+            console.log(`Tabla ${Tablas.aberturaPresupuesto} eliminada`);
 
             await db.execAsync(`DROP TABLE IF EXISTS ${Tablas.presupuestos};`);
             console.log(`Tabla ${Tablas.presupuestos} eliminada`);

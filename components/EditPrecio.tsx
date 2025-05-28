@@ -7,7 +7,7 @@ import ModalColor from './ModalColor';
 import ModalPrecioM2 from './ModalPrecioM2';
 import ModalAccesoriosSerie from './ModalAccesoriosSerie';
 import { ColorOption, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault, useBD } from '../contexts/BDContext';
-import { preciosVariosEnum } from '@/app/Data/variablesGlobales';
+import { preciosVariosEnum } from '@/constants/variablesGlobales';
 
 interface EditPrecioProps {
     precio: string;
