@@ -6,7 +6,10 @@ import {
     updatePrecioVarios,
     insertarPresupuestoConItems,
     initializeSeriesTable,
-    updateAccesorioPrecio
+    updateAccesorioPrecio,
+    dropPresupuesto,
+    updatePrecioCortina,
+    updatePrecioPuerta
 } from '@/app/utils/utilsDB';
 import { AberturasEnum } from '@/constants/variablesGlobales';
 import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/app/utils/interfases';
@@ -21,8 +24,11 @@ interface BDContextType {
     updatePerfilGramosBDContext: (obj: PerfilesOption) => Promise<void>;
     updatePrecioColorBDContext: (obj: ColorOption) => Promise<void>;
     updatePrecioVariosBDContext: (obj: PreciosVariosOption) => Promise<void>;
+    updatePrecioCortinaBDContext: (obj: CortinaOption) => Promise<void>;
+    updatePrecioPuertaBDContext: (obj: ColorOption) => Promise<void>;
     insertarPresupuestoConItemsBDContext: (obj: PresupuestosOption) => Promise<PresupuestosOption>;
     updateAccesorioPrecioBDContext: (serie: SerieOption) => Promise<void>;
+    dropPresupuestoBDContext: (obj: PresupuestosOption) => Promise<void>;
     //obtenerKilajePerfil: (id:string, serie: string) => number;// gramos x metro
 }
 
@@ -42,11 +48,16 @@ export const BDContext = createContext<BDContextType>({
     updatePerfilGramosBDContext: async () => { },
     updatePrecioColorBDContext: async () => { },
     updatePrecioVariosBDContext: async () => { },
+    updatePrecioCortinaBDContext: async () => { },
+    updatePrecioPuertaBDContext: async () => { },
     insertarPresupuestoConItemsBDContext: async () => {
         throw new Error('insertarPresupuestoConItemsBDContext not implemented');
     },
     updateAccesorioPrecioBDContext: async () => {
         throw new Error('updateAccesorioPrecioBDContext not implemented');
+    },
+    dropPresupuestoBDContext: async () => {
+        throw new Error('insertarPresupuestoConItemsBDContext not implemented');
     },
 });
 
@@ -89,6 +100,14 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         return resultado;
     }
 
+    const dropPresupuestoBDContext = async (
+        presupuesto: PresupuestosOption,
+    ): Promise<void> => {
+        const resultado = await dropPresupuesto(presupuesto);
+        setPresupuestosUltimaAct(new Date());
+        return resultado;
+    }
+
     const updateAccesorioPrecioBDContext = async (serie: SerieOption) => {
         await updateAccesorioPrecio(serie);
         setStateBD(prevState => {
@@ -105,6 +124,24 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
             };
         });
     }
+
+    const updatePrecioPuertaBDContext = async (color: ColorOption) => {
+        await updatePrecioPuerta(color);
+        setStateBD(prevState => {
+            const index = prevState.colors.findIndex(item => item.id === color.id);
+            if (index === -1) return prevState; // No se encontró el elemento
+            return {
+                ...prevState,
+                colors:
+                    [
+                        ...prevState.colors.slice(0, index),
+                        { ...prevState.colors[index], ...color },
+                        ...prevState.colors.slice(index + 1)
+                    ]
+            };
+        });
+    }
+
 
     const updatePrecioVariosBDContext = async (precioVario: PreciosVariosOption) => {
         await updatePrecioVarios(precioVario);
@@ -140,6 +177,23 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         });
     }
 
+    const updatePrecioCortinaBDContext = async (cortina: CortinaOption) => {
+        await updatePrecioCortina(cortina);
+        setStateBD(prevState => {
+            const index = prevState.cortinas.findIndex(item => item.id === cortina.id);
+            if (index === -1) return prevState; // No se encontró el elemento
+            return {
+                ...prevState,
+                cortina:
+                    [
+                        ...prevState.cortinas.slice(0, index),
+                        { ...prevState.cortinas[index], ...cortina },
+                        ...prevState.cortinas.slice(index + 1)
+                    ]
+            };
+        });
+    }
+
     const updatePerfilGramosBDContext = async (perfilGramos: PerfilesOption) => {
         await updatePerfilGramos(perfilGramos);
         setStateBD(prevState => {
@@ -165,7 +219,10 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
             updatePrecioColorBDContext,
             updatePrecioVariosBDContext,
             insertarPresupuestoConItemsBDContext,
-            updateAccesorioPrecioBDContext
+            updateAccesorioPrecioBDContext,
+            dropPresupuestoBDContext,
+            updatePrecioCortinaBDContext,
+            updatePrecioPuertaBDContext
 
         }}>
             {children}

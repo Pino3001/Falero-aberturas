@@ -5,8 +5,6 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import Entypo from '@expo/vector-icons/Entypo';
-import Octicons from '@expo/vector-icons/Octicons';
-
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
@@ -66,7 +64,7 @@ export default function TabLayout() {
             <Tabs.Screen
               name="precio"
               options={{
-                title: 'Editar Precio',
+                title: 'Editar Materiales',
                 tabBarIcon: ({ color }) => <FontAwesome name="usd" size={24} color={color} />,
               }}
             />

@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ModalEditarPeso from './ModalPesoXmetro';
-import { PerfilesOption, SerieOption } from '@/app/utils/interfases';
+import ModalEditarAccesorio from './ModalEditarAccesorio';
+import { SerieOption } from '@/app/utils/interfases';
+import Colors from '@/constants/Colors';
 
-interface ModalSerieProps {
+interface ModalAccesoriosSerieProps {
     visible: boolean;
-    hideModal: () => void;
-    serie?: SerieOption;
-    perfiles: PerfilesOption[];
+    hideModal: () => void;  
+    series: SerieOption[];
 }
 
-const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) => {
+const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSerieProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [selectedPerfil, setSelectedPerfil] = useState<PerfilesOption | null>(null);
-    
-    const handleEdit = (index: number) => {
-        const perfilSeleccionado = perfiles[index];
-        setSelectedPerfil(perfilSeleccionado);
+    const [selectedSerie, setSelectedSerie] = useState<SerieOption | null>(null);
+
+    const handleEdit = (serie: SerieOption) => {
+        setSelectedSerie(serie);
         setEditModalVisible(true);
     };
 
@@ -32,29 +31,29 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Serie {serie?.nombre}</Text>
+                        <Text style={styles.title}>Accesorios por Serie</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
-                            <MaterialCommunityIcons name="close" size={24} color="white" />
+                            <MaterialCommunityIcons name="close" size={24} color={Colors.colors.text} />
                         </TouchableOpacity>
                     </View>
 
-                    <DataTable style={{ width: '100%' }}>
+                    <DataTable style={styles.table}>
                         <DataTable.Header style={styles.tableHeader}>
-                            <DataTable.Title textStyle={styles.headerText}>Perfil</DataTable.Title>
-                            <DataTable.Title numeric textStyle={styles.headerText}>gr/m</DataTable.Title>
+                            <DataTable.Title textStyle={styles.headerText}>Serie</DataTable.Title>
+                            <DataTable.Title numeric textStyle={styles.headerText}>Costo </DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {perfiles.map((perfil, index) => (
-                            <DataTable.Row key={index} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{perfiles.find(p => p.serie_id === serie?.id)?.nombre}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos_por_m}</DataTable.Cell>
+                        {series?.map((serie) => (
+                            <DataTable.Row key={serie.id} style={styles.row}>
+                                <DataTable.Cell textStyle={styles.cellText}>{serie.nombre}</DataTable.Cell>
+                                <DataTable.Cell numeric textStyle={styles.cellText}>US$ {serie.precio_accesorios}</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
-                                        iconColor="white"
+                                        iconColor={Colors.colors.text}
                                         size={20}
-                                        onPress={() => handleEdit(index)}
+                                        onPress={() => handleEdit(serie)}
                                         style={styles.editButton}
                                     />
                                 </DataTable.Cell>
@@ -64,11 +63,11 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
                 </View>
             </Modal>
 
-            {selectedPerfil && (
-                <ModalEditarPeso
+            {selectedSerie && (
+                <ModalEditarAccesorio
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    perfil={selectedPerfil}
+                    serie={selectedSerie}
                 />
             )}
         </Portal>
@@ -77,28 +76,21 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
 
 const styles = StyleSheet.create({
     modalBackground: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: Colors.colors.transparencia_modal,
     },
     containerStyle: {
-        width: '98%',
-        alignSelf: 'center',
-        backgroundColor: '#1E1E1E',
+        backgroundColor: Colors.colors.background_modal,
         padding: 20,
         margin: 20,
         borderRadius: 8,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
+        alignSelf: 'center',
+        width: '98%',
+        maxWidth: 600,
     },
     content: {
-        width: 350,
+        width: '100%',
         alignSelf: 'center',
-        gap: 15,
+        gap: 20,
     },
     header: {
         flexDirection: 'row',
@@ -108,31 +100,33 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        color: 'white',
+        color: Colors.colors.text,
         fontWeight: 'bold',
-        marginLeft: 20
+        marginLeft: 20,
     },
     closeButton: {
         padding: 5,
     },
+    table: {
+        backgroundColor: Colors.colors.tabla,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
     tableHeader: {
-        backgroundColor: '#6200ee',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
+        backgroundColor: Colors.colors.complementario,
     },
     headerText: {
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
     row: {
-        backgroundColor: '#2d2d2d',
+        backgroundColor: Colors.colors.tabla,
         borderBottomWidth: 1,
-        borderBottomColor: '#3d3d3d',
+        borderBottomColor: Colors.colors.border_contraste_black,
     },
     cellText: {
-        textAlign: 'center',
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 14,
     },
     editButton: {
@@ -141,4 +135,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModalSerie; 
+export default ModalAccesoriosSerie; 

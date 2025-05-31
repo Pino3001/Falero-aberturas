@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ModalEditarAccesorio from './ModalEditarAccesorio';
-import { useBD } from '../contexts/BDContext';
-import { SerieOption } from '@/app/utils/interfases';
+import ModalPrecioGramo from './ModalPrecioGramo';
+import { ColorOption } from '@/app/utils/interfases';
+import Colors from '@/constants/Colors';
+import ModalPrecioPuerta from './ModalPrecioPuerta';
 
-interface ModalAccesoriosSerieProps {
+interface ModalEditarPuertaProps {
     visible: boolean;
-    hideModal: () => void;  
-    series: SerieOption[];
+    hideModal: () => void;
+    colors?: ColorOption[];
 }
 
-const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSerieProps) => {
-    const [editModalVisible, setEditModalVisible] = useState(false);
-    const [selectedSerie, setSelectedSerie] = useState<SerieOption | null>(null);
 
-    const handleEdit = (serie: SerieOption) => {
-        setSelectedSerie(serie);
+
+const ModalEditarPuerta = ({ visible, hideModal, colors }: ModalEditarPuertaProps) => {
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [selectedAcabado, setSelectedAcabado] = useState<ColorOption | null>(null);
+
+
+    const handleEdit = (color: ColorOption) => {
+        setSelectedAcabado(color);
         setEditModalVisible(true);
     };
 
@@ -31,29 +35,33 @@ const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSeri
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Accesorios por Serie</Text>
+                        <Text style={styles.title}>Precio Puerta</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
-                            <MaterialCommunityIcons name="close" size={24} color="white" />
+                            <MaterialCommunityIcons name="close" size={24} color={Colors.colors.text} />
                         </TouchableOpacity>
                     </View>
 
-                    <DataTable style={styles.table}>
+                    <DataTable style={{ width: '100%' }}>
                         <DataTable.Header style={styles.tableHeader}>
-                            <DataTable.Title textStyle={styles.headerText}>Serie</DataTable.Title>
-                            <DataTable.Title numeric textStyle={styles.headerText}>Costo </DataTable.Title>
+                            <DataTable.Title textStyle={styles.headerText}>Acabado</DataTable.Title>
+                            <DataTable.Title numeric textStyle={styles.headerText}>Precio</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {series?.map((serie) => (
-                            <DataTable.Row key={serie.id} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{serie.nombre}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>US$ {serie.precio_accesorios}</DataTable.Cell>
+                        {colors?.map((acabado: ColorOption) => (
+                            <DataTable.Row key={acabado.id} style={styles.row}>
+                                <DataTable.Cell>
+                                    <Text style={styles.cellText}>{acabado.color}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric>
+                                    <Text style={styles.cellText}>US$ {acabado.precio_un_puerta}</Text>
+                                </DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
-                                        iconColor="white"
+                                        iconColor={Colors.colors.text}
                                         size={20}
-                                        onPress={() => handleEdit(serie)}
+                                        onPress={() => handleEdit(acabado)}
                                         style={styles.editButton}
                                     />
                                 </DataTable.Cell>
@@ -63,34 +71,34 @@ const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSeri
                 </View>
             </Modal>
 
-            {selectedSerie && (
-                <ModalEditarAccesorio
+            {selectedAcabado ? (
+                <ModalPrecioPuerta
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    serie={selectedSerie}
+                    color={selectedAcabado}
                 />
-            )}
+            ) : null}
         </Portal>
     );
 };
 
 const styles = StyleSheet.create({
     modalBackground: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: Colors.colors.transparencia_modal,
     },
     containerStyle: {
-        backgroundColor: '#1E1E1E',
+        backgroundColor: Colors.colors.background_modal,
         padding: 20,
         margin: 20,
         borderRadius: 8,
         alignSelf: 'center',
         width: '98%',
-        maxWidth: 600,
+        maxWidth: 500,
     },
     content: {
-        width: '100%',
+        width: '110%',
         alignSelf: 'center',
-        gap: 20,
+        gap: 15,
     },
     header: {
         flexDirection: 'row',
@@ -100,33 +108,30 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        color: 'white',
+        color: Colors.colors.text,
         fontWeight: 'bold',
         marginLeft: 20,
     },
     closeButton: {
         padding: 5,
     },
-    table: {
-        backgroundColor: '#2d2d2d',
-        borderRadius: 8,
-        overflow: 'hidden',
-    },
     tableHeader: {
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.complementario,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
     },
     headerText: {
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
     row: {
-        backgroundColor: '#2d2d2d',
+        backgroundColor: Colors.colors.tabla,
         borderBottomWidth: 1,
-        borderBottomColor: '#3d3d3d',
+        borderBottomColor:Colors.colors.border_contraste_black,
     },
     cellText: {
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 14,
     },
     editButton: {
@@ -135,4 +140,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModalAccesoriosSerie; 
+export default ModalEditarPuerta; 

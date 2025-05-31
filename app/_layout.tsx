@@ -11,6 +11,7 @@ import { BDProvider } from '@/contexts/BDContext';
 import ErrorBoundary from './utils/ErrorBoundary';
 import { View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 
 
@@ -52,14 +53,15 @@ function RootLayoutNav() {
 
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <BDProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-      </BDProvider>
-    </ThemeProvider>
-
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <BDProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </BDProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

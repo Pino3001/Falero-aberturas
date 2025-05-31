@@ -1,18 +1,19 @@
-import { AberturasEnum } from "@/constants/variablesGlobales";
+import { AberturasEnum, PerfilesEnum, seriesEnum } from "@/constants/variablesGlobales";
 
 export interface ColorOption {
     color: string;
     id: number;
     precio: number;
+    precio_un_puerta: number;
 }
 
 
-export const ColorOptionDefault: ColorOption = { color: "", id: -1, precio: -1 }
+export const ColorOptionDefault: ColorOption = { color: "", id: -1, precio: -1, precio_un_puerta: -1 }
 
 export interface CortinaOption {
     tipo: string;
     id: number;
-    preciom2: number | null; // Precio por metro cuadrado
+    preciom2: number | null;
 }
 export const CortinaOptionDefault: CortinaOption = { tipo: "", id: -1, preciom2: -1 };
 
@@ -65,4 +66,14 @@ export interface AberturaPresupuestoOption {
     mosquitero: boolean;
     cantidad: number;
     precio_unitario: number;
+}
+
+export interface PerfilesSeries {
+    serieNombre: seriesEnum,
+    perfiles: PerfilDimension[],
+}
+
+export interface PerfilDimension {
+    nombrePerfil: string,
+    dimension: number,
 }

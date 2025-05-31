@@ -1,33 +1,28 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { useBD  } from '../contexts/BDContext';
-import { PerfilesOption } from '@/app/utils/interfases';
+import { useBD } from '@/contexts/BDContext';
+import { ColorOption } from '@/app/utils/interfases';
+import Colors from '@/constants/Colors';
 
-interface ModalPesoXmetroProps {
+interface ModalPrecioPuertaProps {
     visible: boolean;
     hideModal: () => void;
-    //serie_id: string;
-    perfil: PerfilesOption;
+    color: ColorOption;
 }
 
-const ModalPesoXmetro = ({ visible, hideModal, perfil }: ModalPesoXmetroProps) => {
-    const [peso, setPeso] = useState('');
+const ModalPrecioPuerta = ({ visible, hideModal, color }: ModalPrecioPuertaProps) => {
+    const [precio, setPrecio] = useState(color.precio_un_puerta.toString());
     const [error, setError] = useState('');
-
-    React.useEffect(() => {
-        if (perfil) {
-            setPeso(perfil.gramos_por_m.toString());
-        }
-    }, [perfil]);
-    const {updatePerfilGramosBDContext} = useBD();
-    const handleSave = () => {
-        const nuevoPeso = Number(peso);
-        if (isNaN(nuevoPeso) || nuevoPeso <= 0) {
-            setError('Por favor, ingrese un peso válido');
+    const {updatePrecioPuertaBDContext} = useBD()
+    const  handleSave = async () => {
+        const nuevoPrecio = Number(precio);
+        console.log('entro a editar', nuevoPrecio);
+        if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
+            setError('Por favor, ingrese un precio válido');
             return;
         }
-        updatePerfilGramosBDContext({ ...perfil, gramos_por_m: nuevoPeso })
+        await updatePrecioPuertaBDContext({ ...color, precio_un_puerta: nuevoPrecio })
         hideModal();
     };
 
@@ -42,38 +37,37 @@ const ModalPesoXmetro = ({ visible, hideModal, perfil }: ModalPesoXmetroProps) =
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={styles.content}>
                         <View style={styles.header}>
-                            <Text style={styles.title}>Editar Peso</Text>
+                            <Text style={styles.title}>{color.color}</Text>
                             <IconButton
                                 icon="close"
-                                iconColor="white"
+                                iconColor={Colors.colors.text}
                                 size={24}
                                 onPress={hideModal}
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.subtitle}>{perfil?.nombre}</Text>
                         
                         <TextInput
-                            label="Peso"
-                            value={peso}
+                            label="Precio"
+                            value={precio}
                             onChangeText={(text) => {
-                                setPeso(text);
+                                setPrecio(text);
                                 setError('');
                             }}
                             keyboardType="numeric"
                             style={styles.input}
                             mode="outlined"
                             error={!!error}
-                            textColor="white"
+                            textColor={Colors.colors.text}
                             theme={{
                                 colors: {
-                                    primary: 'white',
-                                    onSurfaceVariant: 'white',
-                                    placeholder: '#888',
-                                    background: '#2d2d2d',
+                                    primary: Colors.colors.complementario,
+                                    onSurfaceVariant: Colors.colors.text,
+                                    placeholder: Colors.colors.border_contraste_black,
+                                    background: Colors.colors.imput_black,
                                 }
                             }}
-                            right={<TextInput.Affix text="g/m" />}
+                            left={<TextInput.Affix text="US$" />}
                         />
                         
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -83,7 +77,7 @@ const ModalPesoXmetro = ({ visible, hideModal, perfil }: ModalPesoXmetroProps) =
                                 mode="contained" 
                                 onPress={handleSave}
                                 style={styles.button}
-                                textColor="white"
+                                textColor={Colors.colors.text}
                             >
                                 Guardar
                             </Button>
@@ -97,10 +91,10 @@ const ModalPesoXmetro = ({ visible, hideModal, perfil }: ModalPesoXmetroProps) =
 
 const styles = StyleSheet.create({
     modalBackground: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: Colors.colors.transparencia_modal,
     },
     containerStyle: {
-        backgroundColor: '#1E1E1E',
+        backgroundColor: Colors.colors.background_modal,
         padding: 20,
         margin: 20,
         borderRadius: 8,
@@ -117,29 +111,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
     },
-    closeButton: {
-        margin: 0,
-        padding: 0,
-    },
     title: {
-        fontSize: 24,
-        color: 'white',
+        fontSize: 22,
+        color: Colors.colors.text,
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,
     },
     subtitle: {
         fontSize: 18,
-        color: '#ccc',
+        color: Colors.colors.text,
         textAlign: 'center',
+    },
+    closeButton: {
+        margin: 0,
+        padding: 0,
     },
     input: {
         width: '60%',
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.imput_black,
         alignSelf: 'center',
         textAlign: 'center',
         marginVertical: 10,
-        color: 'white',
+        color: Colors.colors.text,
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -147,17 +141,17 @@ const styles = StyleSheet.create({
     },
     button: {
         width: '60%',
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.complementario,
         textAlign: 'center',
-        tintColor: 'white',
+        tintColor: Colors.colors.text,
         borderRadius: 4,
         borderWidth: 1,
-        borderColor: 'white',
+        borderColor: Colors.colors.text,
     },
     errorText: {
-        color: '#cf6679',
+        color: Colors.colors.error,
         textAlign: 'center',
     },
 });
 
-export default ModalPesoXmetro; 
+export default ModalPrecioPuerta; 

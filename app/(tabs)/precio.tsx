@@ -17,18 +17,19 @@ export default function TabEditarPrecioScreen() {
       contentContainerStyle={styles.containerKASV}
       scrollEnabled={true}
     >
-      <TouchableWithoutFeedback 
+      <TouchableWithoutFeedback
         onPress={Keyboard.dismiss}
         accessible={false}
       >
         <View style={styles.container}>
-          <EditPrecio 
+          <EditPrecio
             precio={precio}
             onPrecioChange={setPrecio}
           />
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAwareScrollView>
+
   );
 }
 

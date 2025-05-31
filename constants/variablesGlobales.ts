@@ -15,8 +15,8 @@ export enum PerfilesEnum {
 
 export enum seriesEnum {
     serie20 = 'SERIE 20',
-    serie25_2h = 'SERIE 25 2Hojas',
-    serie25_3h = 'SERIE 25 3Hojas',
+    serie25_2h = 'SERIE 25 2 Hojas',
+    serie25_3h = 'SERIE 25 3 Hojas',
     serieA30 = 'SERIE A30'
 }
 
@@ -49,11 +49,6 @@ export const enum Tablas {
     preciosVarios = "preciosVarios",
     presupuestos = "presupuestos",
     aberturaPresupuesto = "aberturaPresupuesto",
-}
-
-export interface PerfilesSeries {
-    serieNombre: seriesEnum,
-    perfiles: PerfilesOption[],
 }
 
 export enum AberturasEnum {

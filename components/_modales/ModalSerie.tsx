@@ -2,24 +2,24 @@ import React, { useState } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ModalPrecioGramo from './ModalPrecioGramo';
-import { ColorOption } from '@/app/utils/interfases';
+import ModalEditarPeso from './ModalPesoXmetro';
+import { PerfilesOption, SerieOption } from '@/app/utils/interfases';
+import Colors from '@/constants/Colors';
 
-interface ModalColorProps {
+interface ModalSerieProps {
     visible: boolean;
     hideModal: () => void;
-    colors?: ColorOption[];
+    serie?: SerieOption;
+    perfiles: PerfilesOption[];
 }
 
-
-
-const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
+const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [selectedAcabado, setSelectedAcabado] = useState<ColorOption | null>(null);
-
-
-    const handleEdit = (color: ColorOption) => {
-        setSelectedAcabado(color);
+    const [selectedPerfil, setSelectedPerfil] = useState<PerfilesOption | null>(null);
+    
+    const handleEdit = (index: number) => {
+        const perfilSeleccionado = perfiles[index];
+        setSelectedPerfil(perfilSeleccionado);
         setEditModalVisible(true);
     };
 
@@ -33,33 +33,29 @@ const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
             >
                 <View style={styles.content}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Colores</Text>
+                        <Text style={styles.title}>{serie?.nombre}</Text>
                         <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
-                            <MaterialCommunityIcons name="close" size={24} color="white" />
+                            <MaterialCommunityIcons name="close" size={24} color={Colors.colors.text} />
                         </TouchableOpacity>
                     </View>
 
                     <DataTable style={{ width: '100%' }}>
                         <DataTable.Header style={styles.tableHeader}>
-                            <DataTable.Title textStyle={styles.headerText}>Color</DataTable.Title>
-                            <DataTable.Title numeric textStyle={styles.headerText}>Precio/Kg</DataTable.Title>
+                            <DataTable.Title textStyle={styles.headerText}>Perfil</DataTable.Title>
+                            <DataTable.Title numeric textStyle={styles.headerText}>gr/m</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Editar</DataTable.Title>
                         </DataTable.Header>
 
-                        {colors?.map((acabado: ColorOption) => (
-                            <DataTable.Row key={acabado.id} style={styles.row}>
-                                <DataTable.Cell>
-                                    <Text style={styles.cellText}>{acabado.color}</Text>
-                                </DataTable.Cell>
-                                <DataTable.Cell numeric>
-                                    <Text style={styles.cellText}>US${acabado.precio}</Text>
-                                </DataTable.Cell>
+                        {perfiles.map((perfil, index) => (
+                            <DataTable.Row key={index} style={styles.row}>
+                                <DataTable.Cell textStyle={[styles.cellText, {marginRight: -40}]}>{perfil.nombre}</DataTable.Cell>
+                                <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos_por_m} g</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
-                                        iconColor="white"
+                                        iconColor={Colors.colors.text}
                                         size={20}
-                                        onPress={() => handleEdit(acabado)}
+                                        onPress={() => handleEdit(index)}
                                         style={styles.editButton}
                                     />
                                 </DataTable.Cell>
@@ -69,11 +65,11 @@ const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
                 </View>
             </Modal>
 
-            {selectedAcabado && (
-                <ModalPrecioGramo
+            {selectedPerfil && (
+                <ModalEditarPeso
                     visible={editModalVisible}
                     hideModal={() => setEditModalVisible(false)}
-                    color={selectedAcabado}
+                    perfil={selectedPerfil}
                 />
             )}
         </Portal>
@@ -82,19 +78,26 @@ const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
 
 const styles = StyleSheet.create({
     modalBackground: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: Colors.colors.transparencia_modal,
     },
     containerStyle: {
-        backgroundColor: '#1E1E1E',
+        width: '98%',
+        alignSelf: 'center',
+        backgroundColor: Colors.colors.background_modal,
         padding: 20,
         margin: 20,
         borderRadius: 8,
-        alignSelf: 'center',
-        width: '98%',
-        maxWidth: 500,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     content: {
-        width: '110%',
+        width: 350,
         alignSelf: 'center',
         gap: 15,
     },
@@ -106,20 +109,20 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        color: 'white',
+        color: Colors.colors.text,
         fontWeight: 'bold',
-        marginLeft: 20,
+        marginLeft: 20
     },
     closeButton: {
         padding: 5,
     },
     tableHeader: {
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.complementario,
         borderTopLeftRadius: 8,
         borderTopRightRadius: 8,
     },
     headerText: {
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -129,7 +132,8 @@ const styles = StyleSheet.create({
         borderBottomColor: '#3d3d3d',
     },
     cellText: {
-        color: 'white',
+        textAlign: 'center',
+        color: Colors.colors.text,
         fontSize: 14,
     },
     editButton: {
@@ -138,4 +142,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ModalColor; 
+export default ModalSerie; 

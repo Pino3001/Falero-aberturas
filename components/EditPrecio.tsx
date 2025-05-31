@@ -1,13 +1,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Button, Card, List, TextInput, Text, Switch, Snackbar } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ModalSerie from './ModalSerie';
-import ModalColor from './ModalColor';
-import ModalPrecioM2 from './ModalPrecioM2';
-import ModalAccesoriosSerie from './ModalAccesoriosSerie';
-import { ColorOption, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault, useBD } from '../contexts/BDContext';
-import { preciosVariosEnum } from '@/constants/variablesGlobales';
+import ModalSerie from './_modales/ModalSerie';
+import ModalColor from './_modales/ModalColor';
+import ModalPrecioM2 from './_modales/ModalPrecioM2';
+import ModalAccesoriosSerie from '@/components/_modales/ModalAccesoriosSerie';
+import { useBD } from '@/contexts/BDContext';
+import { cortinasEnum, preciosVariosEnum } from '@/constants/variablesGlobales';
+import { CortinaOption, CortinaOptionDefault, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault } from '@/app/utils/interfases';
+import Colors from '@/constants/Colors';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import ModalEditCortina from './_modales/ModalEditCortina';
+import ModalEditarPuerta from './_modales/ModalEditarPuerta';
+import { FontAwesome6 } from '@expo/vector-icons';
 
 interface EditPrecioProps {
     precio: string;
@@ -15,16 +20,18 @@ interface EditPrecioProps {
 }
 
 export default function EditPrecio({ }: EditPrecioProps) {
-    console.log("EditPrecio: entro");
     const [modal, setModal] = useState<{
         visible: boolean;
-        tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios';
+        tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios' | 'cortina' | 'puerta';
         dataModalSerie: {
             serie: SerieOption;
             perfiles: PerfilesOption[];
         };
         dataModalPrecioM2: {
             vario: PreciosVariosOption
+        };
+        dataModalCortina: {
+            cortina: CortinaOption
         };
     }
     >({
@@ -37,21 +44,12 @@ export default function EditPrecio({ }: EditPrecioProps) {
         dataModalPrecioM2: {
             vario: PreciosVariosOptionDefault
         },
+        dataModalCortina: {
+            cortina: CortinaOptionDefault
+        },
     });
-    const [isEditing, setIsEditing] = useState(false);
-    const [manoObra, setManoObra] = useState<string>("");
-    const { stateBD, updatePrecioVariosBDContext } = useBD();
-    const { colors, series, preciosVarios, perfiles } = stateBD;
-    console.log("preciosVarios:",preciosVarios);
-
-    const handleEditToggle = async () => {
-        if (isEditing) {
-            setIsEditing((prev) => !prev);
-            await updatePrecioVariosBDContext({ ...preciosVarios.find(p => p.nombre === 'Mano de Obra') as PreciosVariosOption, precio: Number(manoObra) });
-        } else {
-            setIsEditing((prev) => !prev);
-        }
-    };
+    const { stateBD } = useBD();
+    const { colors, series, preciosVarios, perfiles, cortinas } = stateBD;
 
     return (
         <View style={styles.container}>
@@ -63,7 +61,7 @@ export default function EditPrecio({ }: EditPrecioProps) {
                         title="Editar Serie"
                         style={styles.accordion}
                         titleStyle={styles.accordionTitle}
-                        left={props => <List.Icon {...props} icon="shape" color="white" />}
+                        left={props => <List.Icon {...props} icon="shape" color={Colors.colors.text} />}
                     >
                         {series.map((serie) => (
                             <List.Item
@@ -83,23 +81,56 @@ export default function EditPrecio({ }: EditPrecioProps) {
                         onPress={() => {
                             setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'color' }));
                         }}
-                    ><List.Icon icon="palette" color="white" style={{ marginLeft: 18 }} />
-                        <Text style={{ fontSize: 16, color: 'white' }}>Colores</Text>
+                    ><List.Icon icon="palette" color={Colors.colors.text} style={{ marginLeft: 18 }} />
+                        <Text style={{ fontSize: 16, color: Colors.colors.text }}>Acabado</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.accordion, styles.buttonColores]}
+
+                        onPress={() => {
+                            setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'puerta' }));
+                        }}
+                    ><FontAwesome6 name="door-open" size={22} color={Colors.colors.text} style={{ marginLeft: 18 }} />
+                        <Text style={{ fontSize: 16, color: Colors.colors.text }}>Puertas</Text>
+                    </TouchableOpacity>
+
                 </Card.Content>
             </Card>
 
             {/* Sección Accesorios */}
             <Card style={styles.card}>
-                <Card.Title title="Accesorios" titleStyle={styles.title} />
+                <Card.Title title="Varios" titleStyle={styles.title} />
                 <Card.Content>
                     <List.Accordion
-                        title="Editar Accesorios"
+                        title="Cortinas"
                         style={styles.accordion}
                         titleStyle={styles.accordionTitle}
-                        left={props => <List.Icon {...props} icon="tools" color="white" />}
+                        left={props => <MaterialCommunityIcons {...props} name="curtains" size={24} color={Colors.colors.text} />}
                     >
-                        {preciosVarios.filter(x=> !x.nombre.includes(preciosVariosEnum.manoDeObra)).map((vario) => (
+                        {cortinas.map((cortina) => (
+                            cortina.tipo != cortinasEnum.ninguna ?
+                                <List.Item
+                                    key={cortina.id}
+                                    title={cortina.tipo ?? 'Error'}
+                                    onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'cortina', dataModalCortina: { cortina } }))}
+                                    style={styles.item}
+                                    titleStyle={{
+                                        color: Colors.colors.text,
+                                        fontSize: 16,
+                                        marginLeft: -30,
+                                        fontWeight: 'bold',
+                                    }}
+                                />
+                                : null
+                        ))}
+                    </List.Accordion>
+                    <List.Accordion
+                        title="Edita Precios Varios"
+                        style={styles.accordion}
+                        titleStyle={styles.accordionTitle}
+                        left={props => <List.Icon {...props} icon="tools" color={Colors.colors.text} />}
+                    >
+                        {preciosVarios.map((vario) => (
                             <List.Item
                                 key={vario.id}
                                 title={vario.nombre ?? 'Error'}
@@ -116,60 +147,6 @@ export default function EditPrecio({ }: EditPrecioProps) {
                             titleStyle={styles.itemTitle}
                         />
                     </List.Accordion>
-                </Card.Content>
-            </Card>
-
-            {/* Sección Mano de Obra */}
-            <Card style={styles.card}>
-                <Card.Title title="Mano de Obra" titleStyle={styles.title} />
-                <Card.Content>
-                    <View style={styles.contentContainer}>
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                mode="outlined"
-                                value={preciosVarios.find(p => p.nombre === preciosVariosEnum.manoDeObra)?.precio.toString() || ''}
-                                onChangeText={(text) => {
-                                    if (/^\d*\.?\d*$/.test(text) || text === '') {
-                                        setManoObra(text);
-                                    }
-                                }}
-                                style={[
-                                    styles.input,
-                                    !isEditing && styles.inputDisabled
-                                ]}
-                                contentStyle={styles.inputContent}
-                                right={<TextInput.Affix text="%" />}
-                                theme={{
-                                    colors: {
-                                        text: 'white',
-                                        primary: 'white',
-                                        onSurfaceVariant: 'white',
-                                        placeholder: 'white',
-                                        disabled: '#3700b3',
-                                        background: isEditing ? '#6200ee' : '#4B0082',
-                                    },
-                                }}
-                                textColor="white"
-                                cursorColor="white"
-                                keyboardType="numeric"
-                                editable={isEditing}
-                                selectionColor="rgba(255, 255, 255, 0.3)"
-                            />
-                            <TouchableOpacity
-                                style={[
-                                    styles.editButton,
-                                    isEditing && styles.editButtonActive
-                                ]}
-                                onPress={handleEditToggle}
-                            >
-                                <MaterialCommunityIcons
-                                    name={isEditing ? "check" : "pencil"}
-                                    size={24}
-                                    color="white"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
                 </Card.Content>
             </Card>
             {
@@ -196,6 +173,17 @@ export default function EditPrecio({ }: EditPrecioProps) {
                         hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
                         series={stateBD.series}
                     />
+
+                    <ModalEditCortina
+                        visible={modal.tipo === 'cortina'}
+                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        {...modal.dataModalCortina}
+                    />
+                    <ModalEditarPuerta
+                        visible={modal.tipo === 'puerta'}
+                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        colors={colors}
+                    />
                 </>
                 )
             }
@@ -206,6 +194,8 @@ export default function EditPrecio({ }: EditPrecioProps) {
 const styles = StyleSheet.create({
     container: {
         width: '100%',
+        flexDirection: 'column',
+        gap: 30,
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingVertical: 16,
@@ -214,24 +204,29 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         elevation: 2,
         width: '98%',
-        backgroundColor: '#1E1E1E',
+        backgroundColor: Colors.colors.background_modal,
     },
     title: {
-        color: 'white',
+        color: Colors.colors.text,
     },
     accordion: {
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.imput_black,
+        borderColor: Colors.colors.complementario,
+        borderWidth: 1,
         marginVertical: 4,
+        borderRadius: 8,
     },
     accordionTitle: {
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 16,
     },
     item: {
-        backgroundColor: '#3700b3',
+        backgroundColor: Colors.colors.imput_black,
+        borderColor: Colors.colors.border_contraste_black,
+        borderWidth: 1
     },
     itemTitle: {
-        color: 'white',
+        color: Colors.colors.text,
         fontSize: 18,
         fontWeight: 'bold',
     },
@@ -247,7 +242,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     input: {
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.active_color,
         alignSelf: 'center',
         justifyContent: 'center',
         width: '40%',
@@ -273,29 +268,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     editButtonActive: {
-        backgroundColor: '#4CAF50',
-    },
-    saveButtonContainer: {
-        width: '100%',
-        paddingHorizontal: 20,
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    submitButton: {
-        backgroundColor: '#4CAF50',
-        padding: 8,
-    },
-    submitButtonLabel: {
-        fontSize: 16,
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    snackbar: {
-        backgroundColor: 'red',
+        backgroundColor: Colors.colors.verde,
     },
     buttonColores: {
         height: 60,
-        borderRadius: 0,
+        borderRadius: 8,
         flexDirection: 'row',
         gap: 10,
         alignItems: 'center',

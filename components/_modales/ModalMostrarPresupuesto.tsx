@@ -1,11 +1,12 @@
 import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/app/utils/interfases';
-import GenerarPDF from '@/app/utils/pdfGenerator';
+import { GenerarPDF } from '@/app/utils/pdfGenerator';
+import Colors from '@/constants/Colors';
 import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/constants/variablesGlobales';
 import { useBD } from '@/contexts/BDContext';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { View, TouchableWithoutFeedback, StyleProp, FlatList, Text } from 'react-native';
-import { Button, Card, DataTable, Divider, Icon, IconButton, List, Portal, useTheme, Modal } from 'react-native-paper';
+import { Button, Card, DataTable, Divider, Icon, IconButton, List, Portal, useTheme, Modal, FAB } from 'react-native-paper';
 import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
 
 interface ModalMostrarPresupuestoProps {
@@ -20,6 +21,11 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
   const { stateBD } = useBD();
   const { series, colors, perfiles, preciosVarios, cortinas } = stateBD;
   const [pdf, setPdf] = useState(false);
+
+  useEffect(() => {
+    if (!visible)
+      setPdf(false);
+  }, [visible]);
 
   const gramosAluminio = (ventana: AberturaPresupuestoOption): number => {
     const serie = series.find(x => x.id == ventana.id_serie);
@@ -118,24 +124,23 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
         style={styles.overlay}
       >
         <View style={[styles.content]} >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 18, margin: 10 }} >Presupuesto</Text>
+          <View style={{ alignItems: 'flex-end' }}>
             <IconButton
-              style={{ margin: 5 }}
+              style={{ margin: 0 }}
               icon="close"
-              iconColor="black"
+              iconColor={Colors.colors.background}
               size={24}
               onPress={onClose}
             />
           </View>
           <View style={styles.listContainer}>
             <View style={{ flexDirection: 'row', gap: 15, justifyContent: 'space-between' }}>
-              <Text style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>Cliente: {presupuesto?.nombre_cliente || ''}</Text>
-              <Text style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>Fecha: {presupuesto.fecha?.toLocaleDateString()}</Text>
+              <Text style={{ color: Colors.colors.background, fontSize: 14, fontWeight: 'bold' }}>Cliente: {presupuesto?.nombre_cliente || ''}</Text>
+              <Text style={{ color: Colors.colors.background, fontSize: 14, fontWeight: 'bold' }}>Fecha: {presupuesto.fecha?.toLocaleDateString()}</Text>
             </View>
-            <Divider style={{ borderBlockColor: '#6200ee', borderWidth: 0.5, margin: 5 }}></Divider>
+            <Divider style={{ borderBlockColor: Colors.colors.complementario, borderWidth: 0.5, margin: 5 }}></Divider>
             <View style={{ marginHorizontal: 10, margin: 5 }}>
-              <Text style={{ color: 'black', fontSize: 14, fontWeight: 'bold' }}>Lista de aberturas:</Text>
+              <Text style={{ color: Colors.colors.background, fontSize: 14, fontWeight: 'bold' }}>Lista de aberturas:</Text>
             </View>
             <FlatList
               data={presupuesto.ventanas}
@@ -146,29 +151,36 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                   <List.Accordion
                     title={
                       <View style={{
-                        flexDirection: 'row',
+                        flexDirection: 'row', justifyContent: "space-between", width: "100%"
                       }}>
-                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>{item?.cantidad || ""} Ventana </Text>
-                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>{item?.ancho || 0}</Text>
-                        <Text style={{ fontSize: 6 }}> cm</Text>
-                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>` × </Text>
-                        <Text style={{ fontSize: 15, color: 'black', fontWeight: 'bold' }}>{item?.alto || 0}</Text>
-                        <Text style={{ fontSize: 6 }}>cm </Text>
-                        <Text style={{ fontSize: 15, color: 'red' }}>{((item?.precio_unitario || 0) *( item?.cantidad || 0)).toFixed(1)} U$S</Text>
+                        <View style={{
+                          flexDirection: 'row'
+                        }}>
+                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>{item?.cantidad || ""} {item.tipo_abertura} </Text>
+                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>{item?.ancho || 0}</Text>
+                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>×</Text>
+                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>{item?.alto || 0}</Text>
+                        </View>
+                        <View style={{ right: 0 }}>
+                          <Text style={{ fontSize: 13, color: Colors.colors.error }}>{((item?.precio_unitario || 0) * (item?.cantidad || 0)).toFixed(1)} U$S</Text>
+                        </View>
                       </View>
                     }
-                    style={{ backgroundColor: 'white' }}
+                    style={{ backgroundColor: Colors.colors.text }}
+                    contentStyle={{ marginRight: -20 }}
                     right={() => null}
-                    left={() => <Icon source="star" size={15} color="#6200ee" />}
+                    left={() => <Icon source="star" size={15} color={Colors.colors.complementario} />}
                   >
-                    <View style={{ paddingLeft: 0 }}>
+                    <Divider />
+                    <View style={{ paddingLeft: 0, marginTop: 10, marginBottom: 10 }}>
                       <View style={{ paddingHorizontal: 20 }}>
                         <View style={{ alignContent: 'center' }}>
-                          <Text style={{ textAlign: 'center', fontSize: 12 }}>{series.find(c => c.id === item.id_serie)?.nombre || ''}</Text>
+                          <Text style={{ fontSize: 14, textAlign: 'center' }}>Datos abertura</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 4, justifyContent: 'space-between' }}>
-                          <Text style={{ fontSize: 12 }}>{`Aluminio "${colors.find(c => c.id === item.id_color_aluminio)?.color || ''}"`}</Text>
-                          <Text style={{ fontSize: 12 }}>{`Cant: ${gramosAluminio(item)?.toFixed(2) || 0} kg`}</Text>
+                        <View style={{ flexDirection: 'column', gap: 4, justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: 12 }}>{series.find(c => c.id === item.id_serie)?.nombre || ''}</Text>
+                          <Text style={{ fontSize: 12 }}>{`Acabado: "${colors.find(c => c.id === item.id_color_aluminio)?.color || ''}"`}</Text>
+                          <Text style={{ fontSize: 12 }}>{`Cant Aluminio: ${gramosAluminio(item)?.toFixed(2) || 0} kg`}</Text>
                         </View>
                       </View>
                       <Divider style={{ margin: 3 }}></Divider>
@@ -178,13 +190,13 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
 
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 12 }}>Aluminio:</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoAluminio(item)?.toFixed(1) || 0} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoAluminio(item)?.toFixed(1) || 0} US$`}</Text>
                         </View>
 
-                        {item.vidrio ? 
+                        {item.vidrio ?
                           <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                             <Text style={{ textAlign: 'center', fontSize: 12 }}>Vidrio:</Text>
-                            <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoVidrio(item)?.toFixed(1) || 0} US$`}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoVidrio(item)?.toFixed(1) || 0} US$`}</Text>
                           </View>
                           : null
                         }
@@ -192,7 +204,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                         {item.mosquitero ?
                           <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                             <Text style={{ textAlign: 'center', fontSize: 12 }}>Mosquitero:</Text>
-                            <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoMosquitero(item)?.toFixed(1) || 0} US$`}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoMosquitero(item)?.toFixed(1) || 0} US$`}</Text>
                           </View>
                           : null
                         }
@@ -200,56 +212,57 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                         {item.id_cortina && item.id_cortina > 1 ?
                           <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                             <Text style={{ textAlign: 'center', fontSize: 12 }}>{cortinas.find(c => c.id === item.id_cortina)?.tipo || 'No especificado'}</Text>
-                            <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${costoCortina(item)?.toFixed(1) || 0} US$`}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoCortina(item)?.toFixed(1) || 0} US$`}</Text>
                           </View>
                           : null
                         }
 
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 12 }}>{`Accesorios`}</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: 'red' }}>{`${series.find(s => s.id == item.id_serie)?.precio_accesorios || 0} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${series.find(s => s.id == item.id_serie)?.precio_accesorios || 0} US$`}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Mano De Obra</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 14, color: 'red' }}>{`${costoManoDeObra(item)?.toFixed(1) || 0} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, color: Colors.colors.error }}>{`${costoManoDeObra(item)?.toFixed(1) || 0} US$`}</Text>
                         </View>
                         <Divider style={{ margin: 3 }}></Divider>
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Sub Total</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 14, color: 'red' }}>{`${Math.round(((item?.precio_unitario || 0) *( item?.cantidad || 0)) * 10) / 10} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, color: Colors.colors.error }}>{`${Math.round(((item?.precio_unitario || 0) * (item?.cantidad || 0)) * 10) / 10} US$`}</Text>
                         </View>
                       </View>
                     </View>
+                    <Divider />
+
                   </List.Accordion>
                 </List.Section>
               )}
-              ListEmptyComponent={<List.Item title="No hay aberturas" titleStyle={{ color: 'black', fontSize: 13 }} />}
+              ListEmptyComponent={<List.Item title="No hay aberturas" titleStyle={{ color: Colors.colors.background, fontSize: 13 }} />}
               initialNumToRender={5}
               maxToRenderPerBatch={5}
               windowSize={10}
             />
             <Divider style={{ margin: 3 }}></Divider>
-            <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', paddingHorizontal: 25, marginVertical: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', paddingHorizontal: 25, marginVertical: 10, marginBottom: 60 }}>
               <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>Total</Text>
-              <Text style={{ textAlign: 'center', fontSize: 16, color: 'red' }}>{presupuesto.precio_total?.toFixed(1) || 0} U$S</Text>
+              <Text style={{ textAlign: 'center', fontSize: 16, color: Colors.colors.error }}>{presupuesto.precio_total?.toFixed(1) || 0} U$S</Text>
             </View>
             <View style={{ justifyContent: 'center', paddingHorizontal: 25, marginVertical: 10 }}>
-              <Button style={{ backgroundColor: '#6200ee', borderRadius: 4, justifyContent: 'center' }} labelStyle={{ fontSize: 16 }}
-                textColor='white'
-                onPress={() => { setPdf(true) }} >
-                Compartir
-                <Icon
-                  source="share"  // o "share-variant"
-                  color="white"
-                  size={20}
-                />
-              </Button>
             </View>
           </View>
+          <FAB
+            icon="share"
+            style={{
+              position: 'absolute',
+              margin: 16,
+              right: -10,
+              bottom: -10,
+              backgroundColor: Colors.colors.complementario
+            }}
+            onPress={() => { GenerarPDF({ presupuesto, colors, cortinas }); }}
+          />
         </View>
-        {pdf &&
-          <GenerarPDF
-            presupuestoPdf={presupuesto} />}
+
       </Modal>
     </Portal>
   );
@@ -259,10 +272,10 @@ export default ModalMostrarPresupuesto;
 
 const styles = StyleSheet.create({
   overlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: Colors.colors.transparencia_modal,
   },
   containerStyle: {
-    backgroundColor: 'white',
+    backgroundColor: Colors.colors.text,
     borderRadius: 8,
     alignSelf: 'center',
     width: '90%',
@@ -274,7 +287,7 @@ const styles = StyleSheet.create({
     width: '90%',
     height: '90%',
     alignSelf: 'center',
-    backgroundColor: 'white',
+    backgroundColor: Colors.colors.text,
     borderRadius: 10,
 
   },

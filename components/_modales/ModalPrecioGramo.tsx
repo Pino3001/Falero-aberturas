@@ -1,33 +1,29 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { useBD } from '../contexts/BDContext';
-import { SerieOption } from '@/app/utils/interfases';
+import { useBD } from '@/contexts/BDContext';
+import { ColorOption } from '@/app/utils/interfases';
+import Colors from '@/constants/Colors';
 
-interface ModalEditarAccesorioProps {
+interface ModalPrecioGramoProps {
     visible: boolean;
     hideModal: () => void;
-    serie: SerieOption;
+    color: ColorOption;
 }
 
-const ModalEditarAccesorio = ({ visible, hideModal, serie  }: ModalEditarAccesorioProps) => {
-    const [precio, setPrecio] = useState(serie.precio_accesorios.toString());
+const ModalPrecioGramo = ({ visible, hideModal, color }: ModalPrecioGramoProps) => {
+    const [precio, setPrecio] = useState(color.precio.toString());
     const [error, setError] = useState('');
-    const { updateAccesorioPrecioBDContext } = useBD();
-    const handleSave = async () => {
+    const {updatePrecioColorBDContext} = useBD()
+    const  handleSave = async () => {
         const nuevoPrecio = Number(precio);
         if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
             setError('Por favor, ingrese un precio válido');
             return;
         }
-        if (serie && typeof serie.id === 'number') {
-            console.log('precio accesorio', nuevoPrecio);
-            await updateAccesorioPrecioBDContext({ ...serie, precio_accesorios: nuevoPrecio });
-        }
+        await updatePrecioColorBDContext({ ...color, precio: nuevoPrecio })
         hideModal();
     };
-
-
 
     return (
         <Portal>
@@ -40,17 +36,16 @@ const ModalEditarAccesorio = ({ visible, hideModal, serie  }: ModalEditarAccesor
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={styles.content}>
                         <View style={styles.header}>
-                            <Text style={styles.title}>Costo</Text>
+                            <Text style={styles.title}>{color.color}</Text>
                             <IconButton
                                 icon="close"
-                                iconColor="white"
+                                iconColor={Colors.colors.text}
                                 size={24}
                                 onPress={hideModal}
                                 style={styles.closeButton}
                             />
                         </View>
-                        <Text style={styles.serieText}>{serie?.nombre}</Text>
-
+                        
                         <TextInput
                             label="Precio"
                             value={precio}
@@ -60,29 +55,28 @@ const ModalEditarAccesorio = ({ visible, hideModal, serie  }: ModalEditarAccesor
                             }}
                             keyboardType="numeric"
                             style={styles.input}
-                            contentStyle={styles.inputContent}
                             mode="outlined"
                             error={!!error}
-                            textColor="white"
+                            textColor={Colors.colors.text}
                             theme={{
                                 colors: {
-                                    primary: 'white',
-                                    onSurfaceVariant: 'white',
-                                    placeholder: '#888',
-                                    background: '#2d2d2d',
+                                    primary: Colors.colors.complementario,
+                                    onSurfaceVariant: Colors.colors.text,
+                                    placeholder: Colors.colors.border_contraste_black,
+                                    background: Colors.colors.imput_black,
                                 }
                             }}
                             left={<TextInput.Affix text="US$" />}
                         />
-
+                        
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
+                        
                         <View style={styles.buttonContainer}>
-                            <Button
-                                mode="contained"
+                            <Button 
+                                mode="contained" 
                                 onPress={handleSave}
                                 style={styles.button}
-                                textColor="white"
+                                textColor={Colors.colors.text}
                             >
                                 Guardar
                             </Button>
@@ -96,10 +90,10 @@ const ModalEditarAccesorio = ({ visible, hideModal, serie  }: ModalEditarAccesor
 
 const styles = StyleSheet.create({
     modalBackground: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: Colors.colors.transparencia_modal,
     },
     containerStyle: {
-        backgroundColor: '#1E1E1E',
+        backgroundColor: Colors.colors.background_modal,
         padding: 20,
         margin: 20,
         borderRadius: 8,
@@ -117,21 +111,15 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     title: {
-        fontSize: 24,
-        color: 'white',
+        fontSize: 22,
+        color: Colors.colors.text,
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,
     },
     subtitle: {
         fontSize: 18,
-        color: 'white',
-        textAlign: 'center',
-        fontWeight: 'bold',
-    },
-    serieText: {
-        fontSize: 16,
-        color: '#ccc',
+        color: Colors.colors.text,
         textAlign: 'center',
     },
     closeButton: {
@@ -140,38 +128,29 @@ const styles = StyleSheet.create({
     },
     input: {
         width: '60%',
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.imput_black,
         alignSelf: 'center',
-        marginVertical: 10,
-        color: 'white',
-        height: 50,
-    },
-    inputContent: {
-        height: 50,
-        alignItems: 'center',
-        justifyContent: 'center',
         textAlign: 'center',
-        textAlignVertical: 'center',
-        paddingVertical: 0,
+        marginVertical: 10,
+        color: Colors.colors.text,
     },
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginTop: 10,
     },
     button: {
         width: '60%',
-        backgroundColor: '#6200ee',
+        backgroundColor: Colors.colors.complementario,
         textAlign: 'center',
-        tintColor: 'white',
+        tintColor: Colors.colors.text,
         borderRadius: 4,
         borderWidth: 1,
-        borderColor: 'white',
+        borderColor: Colors.colors.text,
     },
     errorText: {
-        color: '#cf6679',
+        color: Colors.colors.error,
         textAlign: 'center',
     },
 });
 
-export default ModalEditarAccesorio; 
+export default ModalPrecioGramo; 
