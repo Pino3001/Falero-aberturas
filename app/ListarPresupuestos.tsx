@@ -1,10 +1,10 @@
-import { getPresupuestos, getPresupuestoByID } from "@/app/utils/utilsDB";
+import { getPresupuestos, getPresupuestoByID } from "@/app/utils/operacionesDB";
 import { useBD } from "@/contexts/BDContext";
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { ActivityIndicator, Button, Card, Dialog, IconButton, List } from "react-native-paper";
-import ModalMostrarPresupuesto from "./_modales/ModalMostrarPresupuesto";
-import { PresupuestosOption, PresupuestosOptionDefault } from "@/app/utils/interfases";
+import ModalMostrarPresupuesto from "../components/_modales/ModalMostrarPresupuesto";
+import { PresupuestosOption, PresupuestosOptionDefault } from "@/constants/interfases";
 import Colors from "@/constants/Colors";
 import SwipeableRow from "@/components/SwipeableRow"
 
@@ -121,7 +121,7 @@ export default function ListarPresupuestos({ path }: { path: string }) {
                         </SwipeableRow>
                     </View>
                 )}
-                ListEmptyComponent={<List.Item title="No hay presupuestos" />}
+                ListEmptyComponent={<List.Item title="No hay presupuestos" titleStyle={{color: Colors.colors.text}}/>}
                 initialNumToRender={5}
                 maxToRenderPerBatch={5}
                 windowSize={10}

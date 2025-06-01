@@ -1,4 +1,4 @@
-import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/app/utils/interfases';
+import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/constants/interfases';
 import { GenerarPDF } from '@/app/utils/pdfGenerator';
 import Colors from '@/constants/Colors';
 import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/constants/variablesGlobales';
@@ -259,6 +259,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
               bottom: -10,
               backgroundColor: Colors.colors.complementario
             }}
+            color={Colors.colors.text}
             onPress={() => { GenerarPDF({ presupuesto, colors, cortinas }); }}
           />
         </View>

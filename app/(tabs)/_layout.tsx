@@ -24,11 +24,11 @@ export default function TabLayout() {
   const appName = "FALERO";
   return (
     <PaperProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={DarkTheme}>
         <View style={{ flex: 1 }}>
           <Tabs
             screenOptions={{
-              tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+              tabBarActiveTintColor: Colors.colors.text,
               // Disable the static render of the header on web
               // to prevent a hydration error in React Navigation v6.
               headerShown: useClientOnlyValue(false, true),
@@ -39,13 +39,13 @@ export default function TabLayout() {
                 title: 'Nuevo Presupuesto',
                 tabBarIcon: ({ color }) => <Entypo name="calculator" size={24} color={color} />,
                 headerRight: () => (
-                  <Link href="/modal" asChild>
+                  <Link href="/modalOpciones" asChild>
                     <Pressable>
                       {({ pressed }) => (
                         <FontAwesome
                           name="ellipsis-v"
                           size={25}
-                          color={Colors[colorScheme ?? 'light'].text}
+                          color={Colors.colors.text}
                           style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                         />
                       )}

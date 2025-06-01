@@ -1,5 +1,5 @@
 import { cortinasAbrevEnum, cortinasEnum, PerfilesEnum, seriesEnum } from "@/constants/variablesGlobales";
-import { AberturaPresupuestoOption, CortinaOption, PerfilDimension, PerfilesOption, PerfilesOptionDefault, PerfilesSeries, PresupuestosOption, SerieOption } from "./interfases";
+import { AberturaPresupuestoOption, CortinaOption, PerfilDimension, PerfilesOption, PerfilesOptionDefault, PerfilesSeries, PresupuestosOption, SerieOption } from "../../constants/interfases";
 import { useState } from "react";
 import { determinarPerfiles } from "./utilsDB";
 

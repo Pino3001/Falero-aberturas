@@ -1,5 +1,7 @@
-import { PerfilesOption } from "@/app/utils/interfases";
+import { PerfilesOption } from "@/constants/interfases";
 
+export const DATABASE_NAME = 'falero.db';
+export const DATABASE_VERSION = 1;
 
 export enum PerfilesEnum {
     MarcoSuperior = "Marco superior",
@@ -49,6 +51,7 @@ export const enum Tablas {
     preciosVarios = "preciosVarios",
     presupuestos = "presupuestos",
     aberturaPresupuesto = "aberturaPresupuesto",
+    db_version = "db_version",
 }
 
 export enum AberturasEnum {

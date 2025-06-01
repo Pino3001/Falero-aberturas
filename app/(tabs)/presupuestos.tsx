@@ -1,6 +1,6 @@
-import Presupuestos from '@/components/ListarPresupuestos';
+import Presupuestos from '../ListarPresupuestos';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import EditPrecio from '@/components/EditPrecio';
+import EditPrecio from '@/app/EditPrecio';
 import { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';

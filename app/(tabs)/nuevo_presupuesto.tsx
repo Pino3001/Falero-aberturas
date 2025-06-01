@@ -1,8 +1,7 @@
 import { StyleSheet, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-
-import EditScreenInfo from '@/components/EditNuevoPresupuesto';
-import { Text, View } from '@/components/Themed';
+import EditScreenInfo from '../EditNuevoPresupuesto';
+import { View } from '@/components/Themed';
+import Colors from '@/constants/Colors';
 
 export default function TabOneScreen() {
   return (
@@ -26,6 +25,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flex: 1,
     paddingTop: 40,
+    backgroundColor: Colors.colors.background,
     width: '100%',
     height: '100%'
   },

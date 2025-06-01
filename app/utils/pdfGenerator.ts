@@ -1,12 +1,12 @@
 // GenerarPDF.tsx
 import React, { useEffect } from 'react';
-import { Image } from 'react-native';
+import { Alert, Image } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
 import { abreviarCortina } from './calculos';
-import { ColorOption, CortinaOption, PresupuestosOption } from './interfases';
+import { ColorOption, CortinaOption, PresupuestosOption } from '../../constants/interfases';
 
 interface pdfProps {
   cortinas: CortinaOption[],
@@ -36,6 +36,52 @@ const loadImageAsBase64 = async (imageModule: number) => {
   } catch (error) {
     console.warn('Error cargando imagen:', error);
     return ''; // Imagen vacía si falla
+  }
+};
+
+// Subcarpeta donde se guardan los pdf
+const PDF_SUBFOLDER = `${FileSystem.documentDirectory}PresupuestosPDF/`;
+
+// Verificar que exista la subcarpeta y si no crearla
+const crearSubCarpeta = async () => {
+  const dirInfo = await FileSystem.getInfoAsync(PDF_SUBFOLDER);
+  if (!dirInfo.exists) {
+    await FileSystem.makeDirectoryAsync(PDF_SUBFOLDER, { intermediates: true });
+    console.log("📁 Carpeta de PDFs creada:", PDF_SUBFOLDER);
+  }
+};
+
+const cleanPDFsSubCarpeta = async (mantenerUltimos = 5) => {
+  try {
+    // Verificar si la carpeta existe
+    const folderInfo = await FileSystem.getInfoAsync(PDF_SUBFOLDER);
+    if (!folderInfo.exists) return;
+
+    //Listar todos los archivos PDF
+    const files = await FileSystem.readDirectoryAsync(PDF_SUBFOLDER);
+    const pdfFiles = files.filter(file => file.endsWith('.pdf'));
+
+    // Ordenar por fecha (más reciente primero)
+    pdfFiles.sort((a, b) => {
+      const aTimePart = a.split('_').pop();
+      const bTimePart = b.split('_').pop();
+      const aTime = aTimePart ? aTimePart.replace('.pdf', '') : '0';
+      const bTime = bTimePart ? bTimePart.replace('.pdf', '') : '0';
+      return parseInt(bTime) - parseInt(aTime); // Orden descendente
+    });
+
+    // Borrar archivos excedentes
+    if (mantenerUltimos > 0 && pdfFiles.length > mantenerUltimos) {
+      const filesToDelete = pdfFiles.slice(mantenerUltimos);
+      for (const file of filesToDelete) {
+        await FileSystem.deleteAsync(`${PDF_SUBFOLDER}${file}`);
+        console.log(`🧹 Eliminado PDF antiguo: ${file}`);
+      }
+    }
+
+    console.log(`✅ Carpeta limpia. Se conservan los ${mantenerUltimos} PDFs más recientes.`);
+  } catch (error) {
+    console.error('❌ Error al limpiar la carpeta:', error);
   }
 };
 
@@ -118,7 +164,12 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       background-color: #94c0bb;
       height: 30px;
     }
-
+    .divider-footer {
+      background-color: #94c0bb;
+      height: 30px;
+      width: 100%;
+      border-radius:8px 8px  0 0 ;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -154,7 +205,6 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       margin: 0 10px;
       font-size: 18px;
       font-weight: bold;
-      color: #117a7a;
     }
 
     .total-amount {
@@ -166,14 +216,13 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     }
 
     .footer {
-      background-color: #117a7a;
       margin-top: auto;
       color: white;
-      padding: 20px;
       border-radius: 0 0 8px 8px;
     }
 
     .footer-content {
+      background-color: #117a7a;
       display: flex;
       justify-content: space-between;
     }
@@ -195,7 +244,6 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       display: flex;
       align-items: center;
       gap: 10px;
-      margin: 10px 0;
       margin-left: 20px;
     }
 
@@ -209,6 +257,8 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
 
     .mp-logo-container {
       display: flex;
+      width: 30px;
+      height: 30px;
       align-items: center;
       justify-content: center;
       background-color: #ffff00;
@@ -231,7 +281,6 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
 
     .social-icons {
       display: flex;
-      margin-top: 10px;
     }
 
     .social-icon {
@@ -285,43 +334,42 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     <span class="total-amount">U$S ${presupuesto.precio_total.toFixed(2)}</span>
   </div>
 
-  <div class="divider"></div>
-
-  <div class="footer">
-    <div class="footer-content">
-      <!-- Columna 1: Información de pago -->
-      <div class="footer-section">
-        <span class="footer-title">INFORMACIÓN DE PAGO:</span>
-        <div class="payment-logos">
-          <div class="payment-logo">
-            <img class="br-logo" src=${banco_republica} alt="Banco República">
+    <div class="footer">
+     <div class="divider-footer"></div>
+      <div class="footer-content">
+        <!-- Columna 1: Información de pago -->
+        <div class="footer-section">
+          <span class="footer-title">INFORMACIÓN DE PAGO:</span>
+          <div class="payment-logos">
+            <div class="payment-logo">
+              <img class="br-logo" src=${banco_republica} alt="Banco República">
+            </div>
+            <div class="mp-logo-container">
+              <img class="mp-logo" src=${mercado_pago} alt="Mercado Pago">
+            </div>
           </div>
-          <div class="mp-logo-container">
-            <img class="mp-logo" src=${mercado_pago} alt="Mercado Pago">
+          <div>Nombre de cuenta: Federico Falero</div>
+        </div>
+
+        <!-- Columna 2: Contacto -->
+        <div class="footer-section">
+          <span class="footer-title">CONTACTO:</span>
+          <div>WhatsApp: 099080052</div>
+          <div style="font-size: 14px">eMail: Fedefalero20@gmail.com</div>
+          <div class="social-icons">
+            <img class="social-icon" src=${insta} alt="Instagram">
+            <img class="social-icon" src=${face} alt="Facebook">
           </div>
         </div>
-        <div>Nombre de cuenta: Federico Falero</div>
-      </div>
 
-      <!-- Columna 2: Contacto -->
-      <div class="footer-section">
-        <span class="footer-title">CONTACTO:</span>
-        <div>WhatsApp: 099080052</div>
-        <div>eMail: Fedefalero20@gmail.com</div>
-        <div class="social-icons">
-          <img class="social-icon" src=${insta} alt="Instagram">
-          <img class="social-icon" src=${face} alt="Facebook">
+        <!-- Columna 3: Dirección -->
+        <div class="footer-section align-right">
+          <span class="footer-title">DIRECCIÓN:</span>
+          <div>RUTA 11 KM 145, EL TALITA</div>
+          <div>SAN JACINTO - CANELONES</div>
         </div>
-      </div>
-
-      <!-- Columna 3: Dirección -->
-      <div class="footer-section align-right">
-        <span class="footer-title">DIRECCIÓN:</span>
-        <div>RUTA 11 KM 145, EL TALITA</div>
-        <div>SAN JACINTO - CANELONES</div>
       </div>
     </div>
-  </div>
   </div>
 </body>
 
@@ -329,32 +377,63 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
 `;
 
   try {
-    const printOptions = {
-      html
-    };
-    // Generate the PDF file
-    const result = await Print.printToFileAsync(printOptions);
+    // Crear subcarpeta si no existe
+    await crearSubCarpeta();
+    await cleanPDFsSubCarpeta(5);
 
-    if (result && result.uri) {
-      // New file name
-      const newFileName = `${FileSystem.documentDirectory}Presupuesto_${presupuesto.nombre_cliente}_${new Date().getFullYear()}.pdf`;
-
-      // Rename the PDF file
-      await FileSystem.moveAsync({
-        from: result.uri,
-        to: newFileName,
-      });
-
-      // Share the renamed PDF
-      await Sharing.shareAsync(newFileName, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Share Invoice PDF'
-      });
-    } else {
-      console.error('Error generating PDF:', result);
+    // Verificar si Sharing está disponible
+    if (!(await Sharing.isAvailableAsync())) {
+      throw new Error('La función de compartir no está disponible en este dispositivo');
     }
+
+    // Generar PDF temporal
+    const { uri: tempUri } = await Print.printToFileAsync({ html });
+    if (!tempUri) throw new Error("No se pudo generar el PDF.");
+
+    //  Definir nuevo nombre de pdf en la subcarpeta
+    const nombreClienteLimpio = presupuesto.nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_'); // Evitar nombres no admitidos para archivos
+    const newFileName = `${PDF_SUBFOLDER}Presupuesto_${nombreClienteLimpio}_${new Date().getFullYear()}.pdf`;
+
+    // Mover a la subcarpeta
+    await FileSystem.moveAsync({
+      from: tempUri,
+      to: newFileName
+    });
+
+    // Compartir
+    await Sharing.shareAsync(newFileName, {
+      mimeType: 'application/pdf',
+      dialogTitle: 'Compartir Presupuesto PDF',
+    });
+
+    // Limpieza final por si queda residual
+    try {
+      await FileSystem.deleteAsync(tempUri);
+    } catch (cleanupError) {
+      console.warn("⚠️ No se pudo limpiar el temporal:", cleanupError);
+    }
+
+    console.log("✅ PDF guardado en:", newFileName);
+    return newFileName;
+
   } catch (error) {
-    console.error('Error generating or sharing PDF:', error);
+    if ((error as Error).message.includes('Another share request')) {
+      console.warn('Por favor espera a que termine la compartición actual');
+      Alert.alert('Espera', 'Por favor espera a que termine la compartición actual antes de intentar nuevamente');
+    } else {
+      console.error('❌ Error crítico:', error);
+      throw error;
+    }
   }
 };
 
+export const listFilesInDirectory = async () => {
+  try {
+    const files = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory as string);
+    console.log("Archivos en la carpeta:", files);
+    return files;
+  } catch (error) {
+    console.error("Error al listar archivos:", error);
+    return [];
+  }
+};

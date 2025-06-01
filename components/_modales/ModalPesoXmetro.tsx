@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
 import { useBD  } from '../../contexts/BDContext';
-import { PerfilesOption } from '@/app/utils/interfases';
+import { PerfilesOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 
 interface ModalPesoXmetroProps {

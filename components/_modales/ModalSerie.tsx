@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalEditarPeso from './ModalPesoXmetro';
-import { PerfilesOption, SerieOption } from '@/app/utils/interfases';
+import { PerfilesOption, SerieOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 
 interface ModalSerieProps {
@@ -48,7 +48,7 @@ const ModalSerie = ({ visible, hideModal, serie , perfiles}: ModalSerieProps) =>
 
                         {perfiles.map((perfil, index) => (
                             <DataTable.Row key={index} style={styles.row}>
-                                <DataTable.Cell textStyle={[styles.cellText, {marginRight: -40}]}>{perfil.nombre}</DataTable.Cell>
+                                <DataTable.Cell textStyle={[styles.cellText, {marginRight: -40, fontSize: 11}]}>{perfil.nombre}</DataTable.Cell>
                                 <DataTable.Cell numeric textStyle={styles.cellText}>{perfil.gramos_por_m} g</DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     content: {
-        width: 350,
+        width: '100%',
         alignSelf: 'center',
         gap: 15,
     },

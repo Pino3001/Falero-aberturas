@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalPrecioGramo from './ModalPrecioGramo';
-import { ColorOption } from '@/app/utils/interfases';
+import { ColorOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 import ModalPrecioPuerta from './ModalPrecioPuerta';
 
@@ -41,7 +41,7 @@ const ModalEditarPuerta = ({ visible, hideModal, colors }: ModalEditarPuertaProp
                         </TouchableOpacity>
                     </View>
 
-                    <DataTable style={{ width: '100%' }}>
+                    <DataTable style={{ width: '100%', alignContent: 'center' }}>
                         <DataTable.Header style={styles.tableHeader}>
                             <DataTable.Title textStyle={styles.headerText}>Acabado</DataTable.Title>
                             <DataTable.Title numeric textStyle={styles.headerText}>Precio</DataTable.Title>
@@ -50,9 +50,9 @@ const ModalEditarPuerta = ({ visible, hideModal, colors }: ModalEditarPuertaProp
 
                         {colors?.map((acabado: ColorOption) => (
                             <DataTable.Row key={acabado.id} style={styles.row}>
-                                <DataTable.Cell>
-                                    <Text style={styles.cellText}>{acabado.color}</Text>
-                                </DataTable.Cell>
+                                <DataTable.Cell >
+                                    <Text style={[styles.cellText, {fontSize: 12}]}>{acabado.color}</Text>
+                                </DataTable.Cell >
                                 <DataTable.Cell numeric>
                                     <Text style={styles.cellText}>US$ {acabado.precio_un_puerta}</Text>
                                 </DataTable.Cell>
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
         maxWidth: 500,
     },
     content: {
-        width: '110%',
+        width: '100%',
         alignSelf: 'center',
         gap: 15,
     },

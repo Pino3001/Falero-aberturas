@@ -8,9 +8,6 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { BDProvider } from '@/contexts/BDContext';
-import ErrorBoundary from './utils/ErrorBoundary';
-import { View } from 'react-native';
-import { Text } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 
@@ -54,7 +51,7 @@ function RootLayoutNav() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={ DarkTheme}>
         <BDProvider>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

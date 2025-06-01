@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalPrecioGramo from './ModalPrecioGramo';
-import { ColorOption } from '@/app/utils/interfases';
+import { ColorOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 
 interface ModalColorProps {
@@ -50,7 +50,7 @@ const ModalColor = ({ visible, hideModal, colors }: ModalColorProps) => {
                         {colors?.map((acabado: ColorOption) => (
                             <DataTable.Row key={acabado.id} style={styles.row}>
                                 <DataTable.Cell>
-                                    <Text style={styles.cellText}>{acabado.color}</Text>
+                                    <Text style={[styles.cellText, {fontSize: 12}]}>{acabado.color}</Text>
                                 </DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <Text style={styles.cellText}>US$ {acabado.precio}</Text>

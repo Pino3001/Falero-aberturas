@@ -1,66 +1,72 @@
 import { BDState } from '@/contexts/BDContext';
 import * as SQLite from 'expo-sqlite';
-import { coloresEnum, cortinasEnum, PerfilesEnum, preciosVariosEnum, seriesEnum, Tablas, AberturasEnum } from '@/constants/variablesGlobales';
-import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, SerieOptionDefault } from './interfases';
+import { coloresEnum, cortinasEnum, PerfilesEnum, preciosVariosEnum, seriesEnum, Tablas, AberturasEnum, DATABASE_NAME, DATABASE_VERSION } from '@/constants/variablesGlobales';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, SerieOptionDefault } from '../../constants/interfases';
+import { getColorAluminio, getCortinas, getPerfiles, getPreciosVarios, getSeries } from './operacionesDB';
+import { colorData, cortinaData, perfilesData, preciosVariosData, serieData } from './valores_preCargados';
+import * as FileSystem from 'expo-file-system';
+import { Alert, Platform } from 'react-native';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 
-const db = SQLite.openDatabaseSync('falero.db');
-
-
-
-
-
-const preciosVariosData: PreciosVariosOption[] = [
-    { id: -1, nombre: preciosVariosEnum.manoDeObra, precio: 30 },
-    { id: -1, nombre: preciosVariosEnum.vidrio, precio: 40 },
-    { id: -1, nombre: preciosVariosEnum.mosquitero, precio: 40 },
-];
+let db = SQLite.openDatabaseSync(DATABASE_NAME);
 
 
-const colorData: ColorOption[] = [
-    { color: coloresEnum.naturalAnodizado, id: -1, precio: 10.1, precio_un_puerta: 1 },
-    { color: coloresEnum.blanco, id: -1, precio: 10.8, precio_un_puerta: 2 },
-    { color: coloresEnum.similMadera, id: -1, precio: 13.8, precio_un_puerta: 3 },
-    { color: coloresEnum.anolock, id: -1, precio: 12.4, precio_un_puerta: 4 },
-];
-
-const serieData: SerieOption[] = [
-    { nombre: seriesEnum.serie20, id: 1, precio_accesorios: 35, serie_id_hereda: null },
-    { nombre: seriesEnum.serie25_2h, id: 2, precio_accesorios: 35, serie_id_hereda: null },
-    { nombre: seriesEnum.serie25_3h, id: 3, precio_accesorios: 40, serie_id_hereda: 2 },
-    { nombre: seriesEnum.serieA30, id: 4, precio_accesorios: 0, serie_id_hereda: null }
-];
-
-
-const cortinaData: CortinaOption[] = [
-    { tipo: cortinasEnum.ninguna, id: -1, preciom2: null },
-    { tipo: cortinasEnum.cortinapvch25, id: -1, preciom2: 87 },
-    { tipo: cortinasEnum.cortinapanelaluminioH25, id: -1, preciom2: 43 },
-    { tipo: cortinasEnum.monoblockenpvc, id: -1, preciom2: 110 },
-    { tipo: cortinasEnum.monoblockconpanelaluminio, id: -1, preciom2: 160 },
-];
-
-
-const perfilesData: PerfilesOption[] = [
-    { id: -1, nombre: PerfilesEnum.MarcoSuperior, serie_id: 1, gramos_por_m: 972 },
-    { id: -1, nombre: PerfilesEnum.MarcoInferior, serie_id: 1, gramos_por_m: 978 },
-    { id: -1, nombre: PerfilesEnum.MarcoLateral, serie_id: 1, gramos_por_m: 669 },
-    { id: -1, nombre: PerfilesEnum.MarcoSuperior, serie_id: 2, gramos_por_m: 972 },
-    { id: -1, nombre: PerfilesEnum.MarcoInferior, serie_id: 2, gramos_por_m: 978 },
-    { id: -1, nombre: PerfilesEnum.MarcoLateral, serie_id: 2, gramos_por_m: 669 },
-    { id: -1, nombre: PerfilesEnum.HojaSuperior, serie_id: 2, gramos_por_m: 492 },
-    { id: -1, nombre: PerfilesEnum.HojaInferior, serie_id: 2, gramos_por_m: 666 },
-    { id: -1, nombre: PerfilesEnum.HojaLateral, serie_id: 2, gramos_por_m: 580 },
-    { id: -1, nombre: PerfilesEnum.HojaEngancheCentral, serie_id: 2, gramos_por_m: 557 },
-    { id: -1, nombre: PerfilesEnum.MarcoSuperior, serie_id: 3, gramos_por_m: 1463 },
-    { id: -1, nombre: PerfilesEnum.MarcoInferior, serie_id: 3, gramos_por_m: 1364 },
-    { id: -1, nombre: PerfilesEnum.MarcoLateral, serie_id: 3, gramos_por_m: 1528 },
-    { id: -1, nombre: PerfilesEnum.MarcoFijo, serie_id: 4, gramos_por_m: 649 },
-    { id: -1, nombre: PerfilesEnum.Contravidrio, serie_id: 4, gramos_por_m: 122 },
-];
-
-
-export async function initializeSeriesTable(): Promise<BDState> {
+export async function initializeDatabase(): Promise<BDState> {
     try {
+        // 1. Setup inicial
+        await createVersionTable();
+        const currentVersion = await getCurrentVersion();
+
+        // 2. Migraciones
+        if (currentVersion < DATABASE_VERSION) {
+            await runMigrations(currentVersion, DATABASE_VERSION);
+        }
+
+        // 3. Crear tablas si no existen
+        await inicializaTablas();
+
+
+        // 5. Devolver estado inicial
+        return {
+            colors: await getColorAluminio(),
+            cortinas: await getCortinas(),
+            perfiles: await getPerfiles(),
+            preciosVarios: await getPreciosVarios(),
+            series: await getSeries(),
+        };
+    } catch (error) {
+        console.error('Database initialization failed:', error);
+        throw error;
+    }
+}
+
+
+async function createVersionTable() {
+    await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS ${Tablas.db_version} (
+            version INTEGER PRIMARY KEY NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+    `);
+
+    // Verificar si ya existe una versión registrada
+    const versionResult = await db.getFirstAsync<{ version: number }>(
+        `SELECT version FROM ${Tablas.db_version} LIMIT 1`
+    );
+
+    if (!versionResult) {
+        // Insertar versión inicial
+        await db.runAsync(
+            `INSERT INTO ${Tablas.db_version} (version, updated_at) VALUES (1, datetime('now'))`
+        );
+    }
+}
+
+
+async function inicializaTablas() {
+    try {
+
         // --TABLA SERIES--
         /**
         *export interface SerieOption {
@@ -298,13 +304,6 @@ export async function initializeSeriesTable(): Promise<BDState> {
             FOREIGN KEY (id_serie) REFERENCES ${Tablas.series} (id),
             FOREIGN KEY (id_cortina) REFERENCES ${Tablas.cortinas} (id),
             FOREIGN KEY (id_presupuesto) REFERENCES ${Tablas.presupuestos} (id));`);
-        return {
-            colors: await getColorAluminio(),
-            cortinas: await getCortinas(),
-            perfiles: await getPerfiles(),
-            preciosVarios: await getPreciosVarios(),
-            series: serieData,
-        }
     }
     catch (error) {
         console.error('Error initializing series table:', error);
@@ -313,420 +312,49 @@ export async function initializeSeriesTable(): Promise<BDState> {
 
 }
 
-export const insertarPresupuestoConItems = async (
-    presupuesto: PresupuestosOption,
-): Promise<PresupuestosOption> => {
-    try {
+async function getCurrentVersion(): Promise<number> {
+    const result = await db.getFirstAsync<{ version: number }>(
+        `SELECT version FROM ${Tablas.db_version} LIMIT 1`
+    );
+    return result?.version ?? 0;
+}
 
-        let presupuesto_result: PresupuestosOption = { ...presupuesto, fecha: new Date() };
-        await db.withExclusiveTransactionAsync(async (txn) => {
-            // 1. Insertar el presupuesto
+async function runMigrations(currentVersion: number, targetVersion: number) {
+    console.log(`Running migrations from ${currentVersion} to ${targetVersion}`);
 
-            const presupuestoResult = await txn.runAsync(
-                `INSERT INTO ${Tablas.presupuestos} (nombre_cliente, fecha, precio_total) 
-                VALUES (?, ?, ?);
-            `, [presupuesto_result.nombre_cliente, presupuesto_result.fecha.toISOString(), presupuesto_result.precio_total]);
+    for (let version = currentVersion + 1; version <= targetVersion; version++) {
+        const migrationFunction = migrations[version];
+        if (!migrationFunction) {
+            throw new Error(`No migration found for version ${version}`);
+        }
 
-            const presupuestoId = presupuestoResult.lastInsertRowId as number;
-            presupuesto_result = { ...presupuesto_result, id: presupuestoId };
-            let ventanas_agregadas: AberturaPresupuestoOption[] = [];
-            // 2. Insertar todos los items asociados
-            for (const ventana of presupuesto.ventanas) {
-                let result = await txn.runAsync(`
-                    INSERT INTO ${Tablas.aberturaPresupuesto} 
-                    (id_presupuesto, ancho, alto, tipo_abertura, id_color_aluminio, id_serie, id_cortina ,vidrio, mosquitero, cantidad, precio_unitario) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                `, [
-                    presupuestoId,
-                    ventana.ancho,
-                    ventana.alto,
-                    ventana.tipo_abertura,
-                    ventana.id_color_aluminio,
-                    ventana.id_serie,
-                    ventana.id_cortina ? ventana.id_cortina : null,
-                    Number(ventana.vidrio),
-                    Number(ventana.mosquitero),
-                    ventana.cantidad,
-                    ventana.precio_unitario
-                ]);
-                const idventana = result.lastInsertRowId;
-                ventanas_agregadas = [...ventanas_agregadas, { ...ventana, id: idventana }];
-            }
-            presupuesto_result.ventanas = ventanas_agregadas;
-            // Devolver el presupuesto con el ID asignado
-        });
-
-        return presupuesto_result;
-    } catch (error) {
-        console.error('Error en transacción:', error);
-        throw error;
+        try {
+            await db.withTransactionAsync(async () => {
+                console.log(`Running migration to version ${version}`);
+                await migrationFunction();
+                await updateDbVersion(version);
+            });
+        } catch (error) {
+            console.error(`Migration to version ${version} failed:`, error);
+            throw error;
+        }
     }
+}
+
+async function updateDbVersion(version: number) {
+    await db.runAsync(
+        `UPDATE ${Tablas.db_version} SET version = ?, updated_at = datetime('now')`,
+        [version]
+    );
+}
+
+const migrations: Record<number, () => Promise<void>> = {
+    1: async () => {
+        // Migración inicial
+    },
 };
 
-async function getSeries(): Promise<SerieOption[]> {
-    return await db.getAllAsync<SerieOption>(`SELECT * FROM ${Tablas.series}`);
-}
 
-export async function getSeriesByID(id_serie: string): Promise<SerieOption> {
-    const result = await db.getFirstAsync<SerieOption>(`SELECT * FROM ${Tablas.series} WHERE id = ?`, [id_serie]);
-    if (result === null) {
-        throw new Error("El id del presupuesto no es valido");
-    }
-    return result;
-}
-
-async function getColorAluminio(): Promise<ColorOption[]> {
-    return await db.getAllAsync<ColorOption>(`SELECT * FROM ${Tablas.coloresAluminio}`);
-}
-
-async function getCortinas(): Promise<CortinaOption[]> {
-    return await db.getAllAsync<CortinaOption>(`SELECT * FROM ${Tablas.cortinas}`);
-}
-
-async function getPerfiles(): Promise<PerfilesOption[]> {
-    return await db.getAllAsync<PerfilesOption>(`SELECT * FROM ${Tablas.perfiles}`);
-}
-
-async function getPreciosVarios(): Promise<PreciosVariosOption[]> {
-    return await db.getAllAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios}`);
-}
-
-export async function getPresupuestos(): Promise<PresupuestosOption[]> {
-    const result = await db.getAllAsync<PresupuestosOption>(`SELECT * FROM ${Tablas.presupuestos} ORDER BY fecha DESC`);
-    return result.map((x: PresupuestosOption) => ({ ...x, fecha: new Date(x.fecha) }));
-}
-
-export async function getPresupuestoByID(id: number): Promise<PresupuestosOption> {
-    try {
-        // Obtener el presupuesto
-        const presupuestoResult = await db.getFirstAsync<PresupuestosOption>(
-            `SELECT id, nombre_cliente, fecha, precio_total 
-            FROM ${Tablas.presupuestos} 
-            WHERE id = ?`,
-            [id]
-        );
-
-        if (presupuestoResult === null) {
-            throw new Error("El id del presupuesto no es valido");
-        }
-
-        presupuestoResult.fecha = new Date(presupuestoResult.fecha);
-
-        // Obtener las ventanas asociadas al presupuesto
-        const ventanasResult = await db.getAllAsync<AberturaPresupuestoOption>(
-            `SELECT id, ancho, alto, tipo_abertura, id_color_aluminio, id_serie, id_cortina, 
-            vidrio, mosquitero, cantidad, precio_unitario
-            FROM ${Tablas.aberturaPresupuesto} 
-            WHERE id_presupuesto = ?`,
-            [id]
-        );
-
-        const result: PresupuestosOption = {
-            ...presupuestoResult,
-            ventanas: ventanasResult
-        };
-        return result;
-    } catch (error) {
-        throw error;
-    }
-}
-
-/* export interface SerieOption {
-    nombre: string;
-    id: number;
-    precio_accesorios: number;
-    serie_id_hereda: number | null;
-} */
-export const updateAccesorioPrecio = async (obj: SerieOption) => {
-    await db.runAsync(`
-            UPDATE ${Tablas.series} 
-            SET precio_accesorios = ? 
-            WHERE id = ?;
-        `, [obj.precio_accesorios, obj.id]);
-};
-
-/* export interface PerfilesOption {
-    id: number;
-    nombre: string;
-    gramos_por_m: number;
-    serie_id: number;
-} */
-export const updatePerfilGramos = async (obj: PerfilesOption) => {
-    await db.runAsync(`
-            UPDATE ${Tablas.perfiles} 
-            SET gramos_por_m = ? 
-            WHERE AND id = ?;
-        `, [obj.gramos_por_m, obj.id]);
-};
-
-export const updatePrecioColor = async (obj: ColorOption) => {
-    await db.runAsync(`
-            UPDATE ${Tablas.coloresAluminio} 
-            SET precioKilo = ? 
-            WHERE id = ?;
-        `, [obj.precio, obj.id]);
-};
-
-export const updatePrecioPuerta = async (obj: ColorOption) => {
-    await db.runAsync(`
-            UPDATE ${Tablas.coloresAluminio} 
-            SET precio_un_puerta = ? 
-            WHERE id = ?;
-        `, [obj.precio_un_puerta, obj.id]);
-};
-
-/* export interface PreciosVariosOption {
-    id: number;
-    nombre: string;
-    precio: number;
-} */
-export const updatePrecioVarios = async (objeto: PreciosVariosOption) => {
-    await db.runAsync(`
-            UPDATE ${Tablas.preciosVarios} 
-            SET precio = ? 
-            WHERE id = ?;
-        `, [objeto.precio, objeto.id]);
-};
-
-export const updatePrecioCortina = async (objeto: CortinaOption) => {
-    if (objeto && objeto.tipo != cortinasEnum.ninguna) {
-        await db.runAsync(`
-            UPDATE ${Tablas.cortinas} 
-            SET preciom2 = ? 
-            WHERE id = ?;
-        `, [objeto.preciom2, objeto.id]);
-    }
-};
-
-async function calcularPrecioVidrio(
-    altoV: number,
-    anchoV: number,
-): Promise<number> {
-    try {
-        const vidrio = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = ?`, [preciosVariosEnum.vidrio]);
-
-        // Manejar el caso donde vidrio o vidrio.precio es undefined
-        const precioUnitario = vidrio?.precio ?? 0;
-
-        const areaVidrio = (altoV * anchoV) / 10000;
-        const precioTotalVidrio = areaVidrio * precioUnitario;
-
-        // Verificar si es NaN antes de usar
-        if (isNaN(precioTotalVidrio)) {
-            return 0;
-        }
-
-        return precioTotalVidrio;
-    } catch (error) {
-        console.error('Error al calcular precio del vidrio:', error);
-        return 0;
-    }
-}
-
-async function calcularPrecioMosquitero(
-    altoV: number,
-    anchoV: number,
-): Promise<number> {
-    try {
-        const mosquitero = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = 'Mosquitero'`);
-        // Manejar el caso donde vidrio o vidrio.precio es undefined
-        const precioUnitario = mosquitero?.precio ?? 0;
-        const areaMosquitero = (altoV * anchoV) / 10000;
-        const precioTotalMosquitero = areaMosquitero * precioUnitario;
-        // Verificar si es NaN antes de usar toFixed
-        if (isNaN(precioTotalMosquitero)) {
-            return 0;
-        }
-        return precioTotalMosquitero;
-    } catch (error) {
-        console.error('Error al calcular precio del vidrio:', error);
-        return 0;
-    }
-}
-
-
-export async function determinarPerfiles(serie: SerieOption): Promise<PerfilesOption[]> {
-    const result = await db.getAllAsync<PerfilesOption>(`
-        -- Perfiles directos
-        SELECT * 
-        FROM ${Tablas.perfiles} 
-        WHERE serie_id = ?
-        
-        UNION ALL
-        
-        -- Perfiles heredados (sin duplicados por nombre)
-        SELECT p.* 
-        FROM ${Tablas.perfiles} p
-        WHERE p.serie_id = ? 
-        AND p.nombre NOT IN (
-            SELECT nombre 
-            FROM ${Tablas.perfiles} 
-            WHERE serie_id = ?
-        )
-    `, 
-    [serie.id, serie.serie_id_hereda, serie.id]);
-
-    return result || [];
-}
-
-
-async function calculoPesoVentana(
-    anchoV: number,
-    altoV: number,
-    serie: SerieOption,
-): Promise<number> {
-
-    const perfilesDeLaSerie = await determinarPerfiles(serie);
-    console.log("perfilesDeLaSerie", perfilesDeLaSerie);
-    if (!perfilesDeLaSerie) throw new Error('Serie no válida');
-
-    let pesoTotal = 0;
-    perfilesDeLaSerie.map(perfil => {
-        let longitudPerfil = 0;
-
-        if (perfil.nombre === PerfilesEnum.MarcoSuperior ||
-            perfil.nombre === PerfilesEnum.MarcoInferior ||
-            perfil.nombre === PerfilesEnum.HojaSuperior ||
-            perfil.nombre === PerfilesEnum.HojaInferior) {
-            longitudPerfil = anchoV / 100;
-        }
-        if (perfil.nombre === PerfilesEnum.MarcoLateral || perfil.nombre === PerfilesEnum.HojaLateral) {
-            longitudPerfil = (2 * altoV) / 100;
-        }
-        if (serie.id === 2) {
-            if (perfil.nombre === PerfilesEnum.HojaEngancheCentral) {
-                longitudPerfil = (2 * altoV) / 100;
-            }
-        }
-        if (serie.id === 3) {
-            if (perfil.nombre === PerfilesEnum.HojaEngancheCentral) {
-                longitudPerfil = (4 * altoV) / 100;
-            }
-        }
-        if (perfil.nombre === PerfilesEnum.Contravidrio) {
-            longitudPerfil = ((2 * altoV) + (2 * anchoV)) / 100;
-        }
-        if (perfil.nombre === PerfilesEnum.MarcoFijo) {
-            longitudPerfil = ((2 * altoV) + (2 * anchoV)) / 100;
-        }
-
-        const pesoTemp = longitudPerfil * perfil.gramos_por_m;
-        pesoTotal += pesoTemp;
-    })
-
-    return pesoTotal;
-}
-
-async function calcularPrecioColor(
-    color_id: number,
-    peso_aluminio: number
-): Promise<number> {
-    const precioColor = await db.getFirstAsync<ColorOption>(
-        `SELECT * FROM ${Tablas.coloresAluminio} WHERE id = ?`
-        , [color_id]);
-    if (peso_aluminio <= 0) throw new Error('El peso debe ser mayor que cero');
-    if (!precioColor) throw new Error('No se encontro el color buscado');
-
-    const pesoKilo = peso_aluminio / 1000; // Convertir a kilos
-    const precioTotal = pesoKilo * precioColor.precio;
-
-    return precioTotal;
-}
-
-async function calcularPrecioCortina(ancho: number, alto: number, id_cortina: number): Promise<number> {
-    if (id_cortina === -1) return 0;
-    const areaCortina = (ancho / 100 * alto / 100);
-    const cortinaSeleccionada = await db.getFirstAsync<CortinaOption>(
-        `SELECT * FROM ${Tablas.cortinas} WHERE id = ?`, [id_cortina]);
-    if (cortinaSeleccionada?.preciom2 === null) return 0;
-    const precioUnitario = cortinaSeleccionada?.preciom2 ?? 0;
-    return precioUnitario * areaCortina;
-}
-
-
-export async function calcularPrecioVentana(
-    ventana: AberturaPresupuestoOption,
-): Promise<number> {
-    try {
-        // Validación básica de inputs
-        if (typeof ventana.alto !== 'number' || typeof ventana.ancho !== 'number' || ventana.alto <= 0 || ventana.ancho <= 0) {
-            throw new Error('Dimensiones de ventana inválidas');
-        }
-        console.log("ventana", ventana);
-        const serieVentana = (await getSeries()).find(s => s.id === ventana.id_serie) ?? SerieOptionDefault;
-        const pesoPerfiles = await calculoPesoVentana(ventana.ancho, ventana.alto, serieVentana);
-        console.log("pesoPerfiles", pesoPerfiles);
-        const precioAluminioColor = await calcularPrecioColor(ventana.id_color_aluminio, pesoPerfiles);
-
-        let precioVidrio = 0;
-        let precioMosquitero = 0;
-
-        if (ventana.vidrio) {
-            precioVidrio = await calcularPrecioVidrio(ventana.alto, ventana.ancho);
-        }
-
-        if (ventana.mosquitero) {
-            precioMosquitero = await calcularPrecioMosquitero(ventana.alto, ventana.ancho);
-        }
-
-        const precioCortina = await calcularPrecioCortina(ventana.ancho, ventana.alto, ventana.id_cortina ?? -1);
-        console.log('idCortina', ventana.id_cortina);
-
-        // Obtención de datos adicionales con valores por defecto
-        const serieAccesorio = await db.getFirstAsync<SerieOption>(
-            `SELECT * FROM ${Tablas.series} WHERE id = ?`,
-            [ventana.id_serie]
-        ) || { precio_accesorios: 0 }; // Valor por defecto
-
-        const varioManoObra = await db.getFirstAsync<PreciosVariosOption>(
-            `SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = ?`
-            , [preciosVariosEnum.manoDeObra]) || { precio: 1 }; // Valor por defecto 1 si no existe
-
-        // Cálculo final con protección contra NaN
-        const sumaComponentes = precioAluminioColor + precioVidrio + precioMosquitero + (serieAccesorio.precio_accesorios || 0) + precioCortina;
-        const factorGanancia = varioManoObra.precio || 1;
-        const manoObra = (factorGanancia + 100) / 100;
-        console.log('mano de obra', sumaComponentes);
-
-        const precioFinal = sumaComponentes * manoObra;
-
-        if (isNaN(precioFinal)) {
-            throw new Error('El cálculo del precio final resultó en NaN');
-        }
-        return precioFinal;
-    } catch (error) {
-        console.error('Error en calcularPrecioVentana:', error);
-        return 0;
-    }
-}
-
-export async function dropPresupuesto(presupuesto: PresupuestosOption): Promise<void> {
-    try {
-        await db.withExclusiveTransactionAsync(async () => {
-            await db.runAsync(
-                `DELETE FROM ${Tablas.aberturaPresupuesto} WHERE id_presupuesto = ?`,
-                [presupuesto.id]
-            );
-
-            // Eliminar el presupuesto principal
-            const result = await db.runAsync(
-                `DELETE FROM ${Tablas.presupuestos} WHERE id = ?`,
-                [presupuesto.id]
-            );
-
-            if (result.changes === 0) {
-                throw new Error(`No se encontró el presupuesto con ID ${presupuesto.id}`);
-            }
-        });
-    } catch (error) {
-        console.error(`Error al eliminar el presupuesto ${presupuesto.id}:`, error);
-        if (error instanceof Error) {
-            throw new Error(`No se pudo eliminar el presupuesto: ${error.message}`);
-        } else {
-            throw new Error('No se pudo eliminar el presupuesto: error desconocido');
-        }
-    }
-}
 
 export async function dropTables(): Promise<void> {
 
@@ -760,4 +388,234 @@ export async function dropTables(): Promise<void> {
         console.error('Error al eliminar las tablas:', error);
         throw error;
     }
+}
+
+export const DatabaseManager = {
+      exportDatabase: async (): Promise<void> => {
+    try {
+      // 1. Definir rutas de origen
+      const dbUri = `${FileSystem.documentDirectory}SQLite/${DATABASE_NAME}`;
+      
+      // 2. Verificar que el archivo de origen existe
+      const fileInfo = await FileSystem.getInfoAsync(dbUri);
+      if (!fileInfo.exists) {
+        throw new Error('La base de datos no existe en la ubicación esperada');
+      }
+
+      // 3. Manejo diferente para Android
+      if (Platform.OS === 'android') {
+        // 3.1 Solicitar permisos para acceder al almacenamiento externo
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (!permissions.granted) {
+          throw new Error('Se requieren permisos de almacenamiento');
+        }
+
+        // 3.2 Crear el archivo usando SAF (Storage Access Framework)
+        try {
+          const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri,
+            DATABASE_NAME,
+            'application/x-sqlite3'
+          );
+          
+          // 3.3 Leer la base de datos como string base64
+          const base64Data = await FileSystem.readAsStringAsync(dbUri, {
+            encoding: FileSystem.EncodingType.Base64
+          });
+          
+          // 3.4 Escribir en el nuevo archivo
+          await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+            encoding: FileSystem.EncodingType.Base64
+          });
+          
+          Alert.alert('Éxito', 'Base de datos exportada correctamente');
+          return;
+        } catch (safError) {
+          throw new Error(`Error al crear el archivo: ${safError}`);
+        }
+      }
+
+      // 4. Manejo para iOS
+      const exportDir = `${FileSystem.cacheDirectory}exports/`;
+      const exportPath = `${exportDir}${DATABASE_NAME}_backup_${Date.now()}.db`;
+
+      // 5. Crear directorio si no existe
+      await FileSystem.makeDirectoryAsync(exportDir, { intermediates: true });
+
+      // 6. Copiar el archivo
+      await FileSystem.copyAsync({
+        from: dbUri,
+        to: exportPath
+      });
+
+      // 7. Compartir el archivo
+      await Sharing.shareAsync(exportPath, {
+        mimeType: 'application/x-sqlite3',
+        dialogTitle: 'Exportar base de datos',
+        UTI: 'com.adobe.pdf' // Para iOS
+      });
+
+    } catch (error) {
+      console.error('Error al exportar la base de datos:', error);
+      Alert.alert(
+        'Error', 
+        `No se pudo exportar la base de datos: ${error}`
+      );
+      throw error;
+    }
+  },
+
+  pickDatabaseForImport: async (): Promise<void> => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: Platform.OS === 'android' 
+          ? ['application/x-sqlite3', 'application/octet-stream'] 
+          : ['public.database'],
+        copyToCacheDirectory: true,
+        multiple: false
+      });
+
+      if (!result.canceled && result.assets?.length) {
+        const selectedFile = result.assets[0];
+        
+        // Verificar el archivo antes de importar
+        const fileInfo = await FileSystem.getInfoAsync(selectedFile.uri);
+        if (!fileInfo.exists || fileInfo.size === 0) {
+          throw new Error('El archivo seleccionado está vacío o no existe');
+        }
+
+        // Mover a una ubicación controlada antes de importar
+        const tempUri = `${FileSystem.cacheDirectory}temp_import.db`;
+        await FileSystem.copyAsync({
+          from: selectedFile.uri,
+          to: tempUri
+        });
+
+        await importDatabase(tempUri);
+        Alert.alert('Éxito', 'Base de datos importada correctamente');
+      }
+    } catch (error) {
+      console.error('Error en importación:', error);
+      Alert.alert(
+        'Error',
+        `No se pudo importar: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
+    }
+  },
+
+    createBackup: async (): Promise<string> => {
+        const backupUri = `${FileSystem.documentDirectory}backups/${Date.now()}_${DATABASE_NAME}`;
+        await FileSystem.copyAsync({
+            from: `${FileSystem.documentDirectory}SQLite/${DATABASE_NAME}`,
+            to: backupUri
+        });
+        return backupUri;
+    },
+};
+
+async function importDatabase(uri: string): Promise<void> {
+  try {
+    //Verificación avanzada del archivo
+    await verifyDatabaseFile(uri);
+
+    //Obtener versión antes de reemplazar
+    const importedVersion = await getDatabaseVersionFromFile(uri);
+    const currentVersion = DATABASE_VERSION;
+
+    if (importedVersion > currentVersion) {
+      throw new Error(`Versión ${importedVersion} no soportada (máxima: ${currentVersion})`);
+    }
+
+    // Preparar rutas
+    const finalDbPath = `${FileSystem.documentDirectory}SQLite/${DATABASE_NAME}`;
+    const backupPath = await DatabaseManager.createBackup();
+
+    try {
+      // Cerrar conexión existente
+      await db.closeAsync();
+
+      // Reemplazar la base de datos
+      await FileSystem.deleteAsync(finalDbPath);
+      await FileSystem.copyAsync({
+        from: uri,
+        to: finalDbPath
+      });
+
+      // Reabrir conexión
+      db = SQLite.openDatabaseSync(DATABASE_NAME);
+
+      // Aplicar migraciones si es necesario
+      if (importedVersion < currentVersion) {
+        await runMigrations(importedVersion, currentVersion);
+      }
+
+      console.log('Importación completada exitosamente');
+    } catch (replaceError) {
+      // Restaurar backup en caso de error
+      await FileSystem.moveAsync({
+        from: backupPath,
+        to: finalDbPath
+      });
+      throw replaceError;
+    }
+  } catch (error) {
+    console.error('Error en importDatabase:', error);
+    throw error;
+  }
+}
+
+// Verificación avanzada del archivo SQLite
+async function verifyDatabaseFile(uri: string): Promise<void> {
+  try {
+    // Verificar que es un archivo SQLite válido
+    const header = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.UTF8,
+      length: 16,
+      position: 0
+    });
+
+    if (!header.startsWith('SQLite format 3')) {
+      throw new Error('El archivo no es una base de datos SQLite válida');
+    }
+
+    // Verificar tablas esenciales
+    const tempDb = SQLite.openDatabaseSync(uri);
+    try {
+      const tablesToVerify = [
+        Tablas.series,
+        Tablas.coloresAluminio,
+        Tablas.db_version
+        // Agrega otras tablas esenciales
+      ];
+
+      for (const table of tablesToVerify) {
+        const tableExists = await tempDb.getFirstAsync<{ name: string }>(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+          [table]
+        );
+        
+        if (!tableExists) {
+          throw new Error(`Falta tabla esencial: ${table}`);
+        }
+      }
+    } finally {
+      await tempDb.closeAsync();
+    }
+  } catch (error) {
+    throw new Error(`Verificación fallida: ${error}`);
+  }
+}
+
+// Obtener versión de archivo SQLite
+async function getDatabaseVersionFromFile(uri: string): Promise<number> {
+  const tempDb = SQLite.openDatabaseSync(uri);
+  try {
+    const result = await tempDb.getFirstAsync<{ version: number }>(
+      `SELECT version FROM db_version LIMIT 1`
+    );
+    return result?.version ?? 0;
+  } finally {
+    await tempDb.closeAsync();
+  }
 }

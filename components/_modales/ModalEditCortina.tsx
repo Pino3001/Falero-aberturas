@@ -1,4 +1,4 @@
-import { CortinaOption, PreciosVariosOption } from '@/app/utils/interfases';
+import { CortinaOption, PreciosVariosOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 import { preciosVariosEnum } from '@/constants/variablesGlobales';
 import { useBD } from '@/contexts/BDContext';

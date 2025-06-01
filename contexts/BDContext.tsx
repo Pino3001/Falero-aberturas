@@ -1,18 +1,9 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import * as SQLite from 'expo-sqlite';
-import {
-    updatePerfilGramos,
-    updatePrecioColor,
-    updatePrecioVarios,
-    insertarPresupuestoConItems,
-    initializeSeriesTable,
-    updateAccesorioPrecio,
-    dropPresupuesto,
-    updatePrecioCortina,
-    updatePrecioPuerta
-} from '@/app/utils/utilsDB';
+import { initializeDatabase } from '@/app/utils/utilsDB';
 import { AberturasEnum } from '@/constants/variablesGlobales';
-import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/app/utils/interfases';
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/constants/interfases';
+import { dropPresupuesto, insertarPresupuestoConItems, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioVarios } from '@/app/utils/operacionesDB';
 
 const db = SQLite.openDatabaseAsync('falero.db');
 console.log('Database opened:', db);
@@ -83,7 +74,7 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         const loadData = async () => {
             try {
                 // Inicializar todas las tablas
-                const initializedState = await initializeSeriesTable();
+                const initializedState = await initializeDatabase();
                 setStateBD(initializedState);
             } catch (error) {
                 console.error('Error loading data:', error);

@@ -1,5 +1,5 @@
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import EditPrecio from '@/components/EditPrecio';
+import EditPrecio from '@/app/EditPrecio';
 import { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 

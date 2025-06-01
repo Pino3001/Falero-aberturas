@@ -5,9 +5,9 @@ import { Button, Card, Chip, Portal, TextInput, Modal } from 'react-native-paper
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useBD } from '@/contexts/BDContext';
-import { calcularPrecioVentana } from '@/app/utils/utilsDB';
+import { calcularPrecioVentana } from '@/app/utils/operacionesDB';
 import { AberturasEnum, seriesEnum } from '@/constants/variablesGlobales';
-import { AberturaPresupuestoOption, ColorOption } from '@/app/utils/interfases';
+import { AberturaPresupuestoOption, ColorOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 
 interface AgregarAberturaProps {
@@ -165,13 +165,13 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
 
                         <View style={{ width: '100%', alignItems: "center", alignSelf: 'center', backgroundColor: Colors.colors.background_modal, marginTop: 10 }}>
                             <View style={{ flexDirection: 'column', gap: 15, alignContent: "center", alignItems: "center", width: '100%', backgroundColor: 'transparent' }}>
-                                <Text style={{ textAlign: 'center' }}>Agregar Nueva Abertura</Text>
+                                <Text style={{ textAlign: 'center', color: Colors.colors.text }}>Agregar Nueva Abertura</Text>
                                 <View style={{
                                     flexDirection: 'row', justifyContent: "space-between",
-                                    width: "100%", alignItems: "center", backgroundColor: 'transparent'
+                                    width: "100%", alignItems: "center", backgroundColor: Colors.colors.background_modal
                                 }}>
-                                    <Text>Aberturas</Text>
-                                    <View style={{ width: "70%" }}>
+                                    <Text style={{ color: Colors.colors.text }}>Aberturas</Text>
+                                    <View style={{ width: "70%", backgroundColor: 'transparent' }}>
                                         <Dropdown
                                             data={aberturasCombo}
                                             labelField="label"
@@ -190,26 +190,28 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                             style={styles.outputMaterial}
                                             placeholderStyle={{ color: Colors.colors.text, fontSize: 14 }}
                                             containerStyle={{ backgroundColor: Colors.colors.imput_black }}
-                                            itemContainerStyle={{ height: 50, paddingVertical: 0 }}
+                                            itemContainerStyle={{ height: 50, paddingVertical: -20 }}
                                             activeColor={Colors.colors.active_color}
-                                            itemTextStyle={{ color: Colors.colors.text, fontSize: 14 }}
+                                            itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
+
                                             iconColor={Colors.colors.text}
                                             showsVerticalScrollIndicator={false}
                                         />
                                     </View>
                                 </View>
                                 {ventana.tipo_abertura != AberturasEnum.puerta ? (
-                                    <View style={{ flexDirection: 'row', gap: 10, justifyContent: "space-between", alignItems: "center", width: "100%", backgroundColor: 'transparent' }}>
-                                        <Text>Dimensiones</Text>
+                                    <View style={{ flexDirection: 'row', gap: 10, justifyContent: "space-between", alignItems: "center", width: "100%", backgroundColor: Colors.colors.background_modal }}>
+                                        <Text style={{ color: Colors.colors.text }}>Dimensiones</Text>
                                         <View style={{ flexDirection: 'row', justifyContent: "flex-start", alignItems: "center", width: "70%", backgroundColor: 'transparent', height: 40 }}>
 
                                             <TextInput
                                                 label='Alto *'
                                                 mode="outlined"
                                                 error={errors.largo}
-                                                style={{ height: 40, width: '42%', backgroundColor: Colors.colors.imput_black, fontSize: 14 }}
+                                                textColor={Colors.colors.text}
+                                                style={{ height: 40, width: '40%', backgroundColor: Colors.colors.imput_black, fontSize: 14 }}
                                                 keyboardType="numeric"
-                                                right={<TextInput.Affix text="cm" textStyle={{ marginRight: -6 }} />}
+                                                right={<TextInput.Affix text="cm" textStyle={{ marginRight: -6, color: Colors.colors.text }} />}
                                                 maxLength={3}
                                                 showSoftInputOnFocus={true}
                                                 value={alto}
@@ -221,10 +223,12 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                         placeholder: errors.largo ? Colors.colors.error : Colors.colors.text,
                                                         text: errors.largo ? Colors.colors.error : Colors.colors.text,
                                                         outline: errors.largo ? Colors.colors.error : Colors.colors.border_contraste_black,
+                                                        primary: Colors.colors.complementario,
+                                                        onSurfaceVariant: Colors.colors.text,
                                                     }
                                                 }}
                                             />
-                                            <View style={{ width: "16%", borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexGrow: 1, backgroundColor: 'transparent' }}>
+                                            <View style={{ width: "15%", borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.colors.background_modal }}>
                                                 <FontAwesome name="close" size={20} color={Colors.colors.text} />
                                             </View>
 
@@ -232,10 +236,11 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 label='Ancho *'
                                                 mode="outlined"
                                                 error={errors.ancho}
+                                                textColor={Colors.colors.text}
                                                 maxLength={3}
-                                                style={{ height: 40, width: '42%', backgroundColor: Colors.colors.imput_black, fontSize: 14 }}
+                                                style={{ height: 40, width: '40%', backgroundColor: Colors.colors.imput_black, fontSize: 14 }}
                                                 outlineStyle={{ borderWidth: 1.5, height: 40 }}
-                                                right={<TextInput.Affix text="cm" textStyle={{ marginRight: -6 }} />}
+                                                right={<TextInput.Affix text="cm" textStyle={{ marginRight: -6, color: Colors.colors.text }} />}
                                                 showSoftInputOnFocus={true}
                                                 keyboardType="numeric"
                                                 value={ancho}
@@ -246,7 +251,8 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                         placeholder: errors.ancho ? Colors.colors.error : Colors.colors.text,
                                                         text: errors.ancho ? Colors.colors.error : Colors.colors.text,
                                                         outline: errors.ancho ? Colors.colors.error : Colors.colors.border_contraste_black,
-
+                                                        primary: Colors.colors.complementario,
+                                                        onSurfaceVariant: Colors.colors.text,
                                                     }
                                                 }}
                                             />
@@ -257,16 +263,16 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                 {ventana.tipo_abertura != AberturasEnum.puerta ? (
                                     <View style={{
                                         flexDirection: 'row', justifyContent: "space-between",
-                                        width: "100%", alignItems: "center", backgroundColor: 'transparent'
+                                        width: "100%", alignItems: "center", backgroundColor: Colors.colors.background_modal
                                     }}>
-                                        <Text>Serie</Text>
-                                        <View style={{ width: "70%" }}>
+                                        <Text style={{ color: Colors.colors.text }}>Serie</Text>
+                                        <View style={{ width: "70%", backgroundColor: 'transparent' }}>
                                             <Dropdown
                                                 data={seriesSegunTipoAbertura}
                                                 labelField="nombre"
                                                 valueField="id"
                                                 style={[styles.outputMaterial, errors.serie && styles.dropdownError]}
-                                                itemContainerStyle={{ height: 50, paddingVertical: 0 }}
+                                                itemContainerStyle={{ height: 50, paddingVertical: -20 }}
                                                 onChange={(item) => {
                                                     setState((prevState) => ({
                                                         ...prevState, ventana: {
@@ -280,9 +286,9 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 placeholder=" Selecciona la serie *"
                                                 placeholderStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
                                                 selectedTextStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
-                                                containerStyle={{ backgroundColor: Colors.colors.imput_black }}
+                                                containerStyle={{ backgroundColor: Colors.colors.imput_black, paddingVertical: 0 }}
                                                 iconColor={errors.serie ? Colors.colors.error : Colors.colors.text}
                                                 inputSearchStyle={{ height: 40 }}
                                             />
@@ -290,15 +296,15 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                     </View>
                                 ) : null}
                                 {ventana.tipo_abertura != AberturasEnum.puerta ? (
-                                    <View style={{ flexDirection: 'row', justifyContent: "space-between", width: "100%", alignItems: "center", backgroundColor: 'transparent' }}>
-                                        <Text>Color</Text>
-                                        <View style={{ width: "70%" }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: "space-between", width: "100%", alignItems: "center", backgroundColor: Colors.colors.background_modal }}>
+                                        <Text style={{ color: Colors.colors.text }}>Color</Text>
+                                        <View style={{ width: "70%", backgroundColor: 'transparent' }}>
                                             <Dropdown
                                                 data={colors}
                                                 labelField="color"
                                                 valueField="id"
                                                 style={[styles.outputMaterial, errors.colorAluminio && styles.dropdownError]}
-                                                itemContainerStyle={{ height: 50, paddingVertical: 0 }}
+                                                itemContainerStyle={{ height: 50, paddingVertical: -20 }}
                                                 onChange={(item: ColorOption) => {
                                                     setState((prevState) => ({
                                                         ...prevState, ventana: {
@@ -312,7 +318,8 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 placeholder=" Selecciona el color *"
                                                 placeholderStyle={{ color: errors.colorAluminio ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
+
                                                 selectedTextStyle={{ color: errors.colorAluminio ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black }}
                                                 iconColor={errors.colorAluminio ? Colors.colors.error : Colors.colors.text}
@@ -323,19 +330,20 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
 
 
                                 {ventana.tipo_abertura != AberturasEnum.puerta ? (
-                                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", backgroundColor: 'transparent' }}>
-                                        <Text>Cortina</Text>
-                                        <View style={{ width: "70%" }}>
+                                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", backgroundColor: Colors.colors.background_modal, }}>
+                                        <Text style={{ color: Colors.colors.text }}>Cortina</Text>
+                                        <View style={{ width: "70%", backgroundColor: 'transparent' }}>
                                             <Dropdown
                                                 data={cortinas}
                                                 labelField="tipo"
                                                 valueField="id"
                                                 style={styles.outputMaterial}
-                                                itemContainerStyle={{ height: 50, paddingVertical: 0 }}
-                                                selectedTextStyle={{ color: Colors.colors.text, backgroundColor: Colors.colors.imput_black, fontSize: 14 }}
+                                                itemContainerStyle={{ height: 50, paddingVertical: -20 }}
+                                                selectedTextStyle={{ color: Colors.colors.text, backgroundColor: Colors.colors.imput_black, fontSize: 11 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 10, marginVertical: -2 }}
+
                                                 onChange={(item) =>
                                                     setState((prevState) => ({
                                                         ...prevState, ventana: {
@@ -367,9 +375,15 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                             mosquitero: !prevState.ventana.mosquitero
                                                         }
                                                     }))}
+                                                textStyle={{ color: Colors.colors.text }}
                                                 style={{
                                                     borderRadius: 16,
                                                     backgroundColor: ventana.mosquitero ? Colors.colors.complementario : Colors.colors.border_contraste_black,
+                                                }}
+                                                theme={{
+                                                    colors: {
+                                                        primary: Colors.colors.text   // Color del ícono cuando es "close"
+                                                    }
                                                 }}
                                             >
                                                 Mosquitero
@@ -390,9 +404,15 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                             vidrio: !prevState.ventana.vidrio
                                                         }
                                                     }))}
+                                                textStyle={{ color: Colors.colors.text }}
                                                 style={{
                                                     borderRadius: 16,
                                                     backgroundColor: ventana.vidrio ? Colors.colors.complementarioText : Colors.colors.border_contraste_black,
+                                                }}
+                                                theme={{
+                                                    colors: {
+                                                        primary: Colors.colors.text   // Color del ícono cuando es "close"
+                                                    }
                                                 }}
                                             >
                                                 Vidrio
@@ -403,16 +423,16 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                 {ventana.tipo_abertura === AberturasEnum.puerta ? (
                                     <View style={{
                                         flexDirection: 'row', justifyContent: "space-between",
-                                        width: "100%", alignItems: "center", backgroundColor: 'transparent'
+                                        width: "100%", alignItems: "center", backgroundColor: Colors.colors.background_modal
                                     }}>
-                                        <Text>Acabado: </Text>
-                                        <View style={{ width: "70%" }}>
+                                        <Text style={{ color: Colors.colors.text }}>Acabado: </Text>
+                                        <View style={{ width: "70%", backgroundColor: 'transparent' }}>
                                             <Dropdown
                                                 data={colors}
                                                 labelField="color"
                                                 valueField="id"
                                                 style={[styles.outputMaterial, errors.serie && styles.dropdownError]}
-                                                itemContainerStyle={{ height: 50, paddingVertical: 0 }}
+                                                itemContainerStyle={{ height: 50, paddingVertical: -20 }}
                                                 onChange={(item: ColorOption) => {
                                                     setColorPuerta(true);
                                                     setState((prevState) => ({
@@ -427,7 +447,8 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 placeholder=" Selecciona la serie *"
                                                 placeholderStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
+
                                                 selectedTextStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black }}
                                                 iconColor={errors.serie ? Colors.colors.error : Colors.colors.text}
@@ -439,8 +460,8 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
 
 
                                 <View style={{ flexDirection: 'row', gap: 10, justifyContent: "space-between", alignItems: "center", width: "100%", backgroundColor: 'transparent' }}>
-                                    <Text>Cantidad</Text>
-                                    <View style={{ width: "70%", flexDirection: 'row', justifyContent: "flex-start", gap: 10, backgroundColor: 'transparent' }}>
+                                    <Text style={{ color: Colors.colors.text }}>Cantidad</Text>
+                                    <View style={{ width: "70%", flexDirection: 'row', justifyContent: "flex-start", gap: 10, backgroundColor: Colors.colors.background_modal }}>
                                         <TextInput
                                             value={cantidad}
                                             onChangeText={(text) => {
@@ -454,6 +475,7 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                     }
                                                 }))
                                             }}
+                                            textColor={Colors.colors.text}
                                             keyboardType="numeric"
                                             mode="outlined"
                                             style={{

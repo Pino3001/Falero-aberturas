@@ -3,16 +3,16 @@ import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalEditarAccesorio from './ModalEditarAccesorio';
-import { SerieOption } from '@/app/utils/interfases';
+import { SerieOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 
 interface ModalAccesoriosSerieProps {
     visible: boolean;
-    hideModal: () => void;  
+    hideModal: () => void;
     series: SerieOption[];
 }
 
-const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSerieProps) => {
+const ModalAccesoriosSerie = ({ visible, hideModal, series }: ModalAccesoriosSerieProps) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [selectedSerie, setSelectedSerie] = useState<SerieOption | null>(null);
 
@@ -46,8 +46,12 @@ const ModalAccesoriosSerie = ({ visible, hideModal,series }: ModalAccesoriosSeri
 
                         {series?.map((serie) => (
                             <DataTable.Row key={serie.id} style={styles.row}>
-                                <DataTable.Cell textStyle={styles.cellText}>{serie.nombre}</DataTable.Cell>
-                                <DataTable.Cell numeric textStyle={styles.cellText}>US$ {serie.precio_accesorios}</DataTable.Cell>
+                                <DataTable.Cell style={[styles.cellText, { fontSize: 12 }]}>
+                                    <Text style={[styles.cellText, { fontSize: 11 }]}>{serie.nombre}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric textStyle={styles.cellText}>
+                                    <Text style={styles.cellText}>{serie.precio_accesorios}</Text>
+                                </DataTable.Cell>
                                 <DataTable.Cell numeric>
                                     <IconButton
                                         icon="pencil"
@@ -126,8 +130,8 @@ const styles = StyleSheet.create({
         borderBottomColor: Colors.colors.border_contraste_black,
     },
     cellText: {
-        color: Colors.colors.text,
         fontSize: 14,
+        color: Colors.colors.text,
     },
     editButton: {
         margin: 0,

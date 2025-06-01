@@ -15,7 +15,7 @@ const DialogComponent: React.FC<DialogComponentProps> = ({ Title, Content_text, 
     const [showDialog, setShowDialog] = useState(true);
 
     return (
-        <Dialog visible={showDialog} onDismiss={() => { setShowDialog(false); onCancel(); }}>
+        <Dialog visible={showDialog} onDismiss={() => { setShowDialog(false); onCancel(); }} style={{backgroundColor: Colors.colors.background_modal}}>
             <Dialog.Title style={{ color: Colors.colors.text }}>{Title}</Dialog.Title>
             <Dialog.Content>
                 <Text style={{ color: Colors.colors.text }}>{Content_text}</Text>

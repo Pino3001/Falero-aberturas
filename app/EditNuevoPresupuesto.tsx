@@ -4,10 +4,10 @@ import { TextInput, List, Text, Divider, FAB, Dialog, Button } from 'react-nativ
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AgregarAbertura, { AgregarAberturaRef } from '@/components/_modales/AgregarAbertura';
 import { useBD } from '../contexts/BDContext';
-import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, PresupuestosOptionDefault, SerieOption } from '@/app/utils/interfases';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, PresupuestosOptionDefault, SerieOption } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
-import DialogComponent from './DialogComponent';
-import ModalMostrarPresupuesto from './_modales/ModalMostrarPresupuesto';
+import ModalMostrarPresupuesto from '@/components/_modales/ModalMostrarPresupuesto';
+import DialogComponent from '@/components/DialogComponent';
 const ventanaIcon = require('../assets/images/ventana.png');
 const ventana3HojasIcon = require('../assets/images/ventana con 3 hojas.png');
 const ventanaCortinaIcon = require('../assets/images/ventana con cortina.png');
@@ -159,8 +159,8 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
         error={!!errorNombre}
       />
 
-      <Divider style={{ marginHorizontal: 10 }} />
-      <Text style={{ fontSize: 14, textAlign: 'center' }}>Listado de Aberturas</Text>
+      <Divider style={{ marginHorizontal: 10, backgroundColor: Colors.colors.text }} />
+      <Text style={{ fontSize: 14, textAlign: 'center', color: Colors.colors.text }}>Listado de Aberturas</Text>
       {presupuesto.ventanas.length > 0 ? (
         presupuesto.ventanas.map((ventana) => (
           <List.Item
@@ -222,7 +222,7 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
         : (
           <Text style={{ textAlign: 'center', color: Colors.colors.text, fontSize: 16 }}>Lista de aberturas vacia!!!</Text>
         )}
-      <Divider style={{ margin: 10 }} />
+      <Divider style={{ margin: 10, backgroundColor: Colors.colors.text }} />
       {presupuesto.ventanas.length > 0 ? (
         <Text style={styles.mensajeTexto}>
           {`Precio total:  `}
@@ -272,12 +272,17 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
         <FAB
           icon="plus"
           style={{
+            alignItems: 'center',
+            justifyContent: 'center',
             position: 'absolute',
+            width: 60,
+            height: 60,
             margin: 16,
             right: 0,
             bottom: 0,
             backgroundColor: Colors.colors.complementario
           }}
+          color={Colors.colors.text}
           onPress={() => {
             if (agregarCerrado && dropdownRef.current) {
               dropdownRef.current.open();
@@ -383,9 +388,9 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
       }
       {
         alert ? (
-          <Dialog visible={alert} onDismiss={() => setAlert(false)}>
+          <Dialog visible={alert} onDismiss={() => setAlert(false)} style={{backgroundColor: Colors.colors.background_modal}}>
             <Dialog.Icon icon="alert" color={Colors.colors.complementario} />
-            <Dialog.Title style={{ textAlign: 'center', fontSize: 16 }}>Debes insertar un nombre de Cliente</Dialog.Title>
+            <Dialog.Title style={{ textAlign: 'center', fontSize: 16, color: Colors.colors.text }}>Debes insertar un nombre de Cliente</Dialog.Title>
           </Dialog>
         ) : null
       }

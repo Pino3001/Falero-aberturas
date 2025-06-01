@@ -1,17 +1,17 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Button, Card, List, TextInput, Text, Switch, Snackbar } from 'react-native-paper';
-import ModalSerie from './_modales/ModalSerie';
-import ModalColor from './_modales/ModalColor';
-import ModalPrecioM2 from './_modales/ModalPrecioM2';
+import ModalSerie from '../components/_modales/ModalSerie';
+import ModalColor from '../components/_modales/ModalColor';
+import ModalPrecioM2 from '../components/_modales/ModalPrecioM2';
 import ModalAccesoriosSerie from '@/components/_modales/ModalAccesoriosSerie';
 import { useBD } from '@/contexts/BDContext';
 import { cortinasEnum, preciosVariosEnum } from '@/constants/variablesGlobales';
-import { CortinaOption, CortinaOptionDefault, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault } from '@/app/utils/interfases';
+import { CortinaOption, CortinaOptionDefault, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault } from '@/constants/interfases';
 import Colors from '@/constants/Colors';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import ModalEditCortina from './_modales/ModalEditCortina';
-import ModalEditarPuerta from './_modales/ModalEditarPuerta';
+import ModalEditCortina from '../components/_modales/ModalEditCortina';
+import ModalEditarPuerta from '../components/_modales/ModalEditarPuerta';
 import { FontAwesome6 } from '@expo/vector-icons';
 
 interface EditPrecioProps {
@@ -56,12 +56,23 @@ export default function EditPrecio({ }: EditPrecioProps) {
             {/* Sección Aluminio */}
             <Card style={styles.card}>
                 <Card.Title title="Aluminio" titleStyle={styles.title} />
-                <Card.Content>
+                <Card.Content >
                     <List.Accordion
                         title="Editar Serie"
                         style={styles.accordion}
                         titleStyle={styles.accordionTitle}
                         left={props => <List.Icon {...props} icon="shape" color={Colors.colors.text} />}
+                        right={({ isExpanded }) => (
+                            <List.Icon
+                                icon={isExpanded ? "chevron-up" : "chevron-down"}
+                                color={Colors.colors.text}
+                            />
+                        )}
+                        theme={{
+                            colors: {
+                                background: 'transparent',
+                            }
+                        }}
                     >
                         {series.map((serie) => (
                             <List.Item
@@ -106,6 +117,17 @@ export default function EditPrecio({ }: EditPrecioProps) {
                         style={styles.accordion}
                         titleStyle={styles.accordionTitle}
                         left={props => <MaterialCommunityIcons {...props} name="curtains" size={24} color={Colors.colors.text} />}
+                        right={({ isExpanded }) => (
+                            <List.Icon
+                                icon={isExpanded ? "chevron-up" : "chevron-down"}
+                                color={Colors.colors.text}
+                            />
+                        )}
+                        theme={{
+                            colors: {
+                                background: 'transparent',
+                            }
+                        }}
                     >
                         {cortinas.map((cortina) => (
                             cortina.tipo != cortinasEnum.ninguna ?
@@ -129,6 +151,17 @@ export default function EditPrecio({ }: EditPrecioProps) {
                         style={styles.accordion}
                         titleStyle={styles.accordionTitle}
                         left={props => <List.Icon {...props} icon="tools" color={Colors.colors.text} />}
+                        right={({ isExpanded }) => (
+                            <List.Icon
+                                icon={isExpanded ? "chevron-up" : "chevron-down"}
+                                color={Colors.colors.text}
+                            />
+                        )}
+                        theme={{
+                            colors: {
+                                background: 'transparent',
+                            }
+                        }}
                     >
                         {preciosVarios.map((vario) => (
                             <List.Item
