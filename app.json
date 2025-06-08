@@ -8,20 +8,31 @@
     "scheme": "carpintelab",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "assets/images/*",
+      "assets/fonts/*",
+      "node_modules/expo-print/example/assets/*"
+    ],
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/adaptive-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#888"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.tudominio.tuapp",
-      "versionCode": 1, 
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ],
+      "usesCleartextTraffic": true,
+      "package": "com.pinoDev.Carpintelab",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#888"
       },
       "edgeToEdgeEnabled": true
     },
@@ -47,10 +58,27 @@
             ]
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "07c18041-45f5-4d81-8e21-deb1839137fe"
+      }
+    },
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "jsEngine": "hermes",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#106c6c"
     }
   }
 }

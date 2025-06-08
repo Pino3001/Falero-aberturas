@@ -1,8 +1,5 @@
 import Presupuestos from '../ListarPresupuestos';
-import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import EditPrecio from '@/app/EditPrecio';
-import { useState } from 'react';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { StyleSheet, View} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function TabPresupuestos() {

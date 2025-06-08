@@ -1,13 +1,12 @@
-import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/constants/interfases';
-import { GenerarPDF } from '@/app/utils/pdfGenerator';
-import Colors from '@/constants/Colors';
-import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/constants/variablesGlobales';
-import { useBD } from '@/contexts/BDContext';
+import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/utils/constants/interfases';
+import { GenerarPDF } from '@/utils/pdfGenerator';
+import Colors from '@/utils/constants/Colors';
+import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/utils/constants/variablesGlobales';
+import { useBD } from '@/utils/contexts/BDContext';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { View, TouchableWithoutFeedback, StyleProp, FlatList, Text } from 'react-native';
-import { Button, Card, DataTable, Divider, Icon, IconButton, List, Portal, useTheme, Modal, FAB } from 'react-native-paper';
-import { Item } from 'react-native-paper/lib/typescript/components/Drawer/Drawer';
+import { View, FlatList, Text } from 'react-native';
+import { Divider, Icon, IconButton, List, Portal, useTheme, Modal, FAB } from 'react-native-paper';
 
 interface ModalMostrarPresupuestoProps {
   visible: boolean;
@@ -227,7 +226,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                         </View>
                         <Divider style={{ margin: 3 }}></Divider>
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
-                          <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Sub Total</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Subtotal</Text>
                           <Text style={{ textAlign: 'center', fontSize: 14, color: Colors.colors.error }}>{`${Math.round(((item?.precio_unitario || 0) * (item?.cantidad || 0)) * 10) / 10} US$`}</Text>
                         </View>
                       </View>

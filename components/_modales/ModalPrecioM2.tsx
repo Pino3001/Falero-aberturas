@@ -1,7 +1,7 @@
-import { PreciosVariosOption } from '@/constants/interfases';
-import Colors from '@/constants/Colors';
-import { preciosVariosEnum } from '@/constants/variablesGlobales';
-import { useBD } from '@/contexts/BDContext';
+import { PreciosVariosOption } from '@/utils/constants/interfases';
+import Colors from '@/utils/constants/Colors';
+import { preciosVariosEnum } from '@/utils/constants/variablesGlobales';
+import { useBD } from '@/utils/contexts/BDContext';
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';

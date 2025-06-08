@@ -3,9 +3,9 @@ import { StyleSheet, Image, View, TouchableOpacity, Alert } from 'react-native';
 import { TextInput, List, Text, Divider, FAB, Dialog, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AgregarAbertura, { AgregarAberturaRef } from '@/components/_modales/AgregarAbertura';
-import { useBD } from '../contexts/BDContext';
-import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, PresupuestosOptionDefault, SerieOption } from '@/constants/interfases';
-import Colors from '@/constants/Colors';
+import { useBD } from '../utils/contexts/BDContext';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, PresupuestosOptionDefault, SerieOption } from '@/utils/constants/interfases';
+import Colors from '@/utils/constants/Colors';
 import ModalMostrarPresupuesto from '@/components/_modales/ModalMostrarPresupuesto';
 import DialogComponent from '@/components/DialogComponent';
 const ventanaIcon = require('../assets/images/ventana.png');
@@ -302,6 +302,7 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
             handleClose={handleClose}
             visible={mostrarAbertura}
             hideModal={() => setAgregarCerrado(true)}
+            id_col_anterior={presupuesto?.ventanas?.length ? presupuesto.ventanas[presupuesto.ventanas.length - 1].id_color_aluminio : undefined}
           />
         ) : null
       }

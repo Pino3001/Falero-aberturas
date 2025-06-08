@@ -3,8 +3,8 @@ import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalEditarAccesorio from './ModalEditarAccesorio';
-import { SerieOption } from '@/constants/interfases';
-import Colors from '@/constants/Colors';
+import { SerieOption } from '@/utils/constants/interfases';
+import Colors from '@/utils/constants/Colors';
 
 interface ModalAccesoriosSerieProps {
     visible: boolean;

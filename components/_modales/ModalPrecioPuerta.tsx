@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Modal, Portal, Text, TextInput, Button, IconButton } from 'react-native-paper';
-import { useBD } from '@/contexts/BDContext';
-import { ColorOption } from '@/constants/interfases';
-import Colors from '@/constants/Colors';
+import { useBD } from '@/utils/contexts/BDContext';
+import { ColorOption } from '@/utils/constants/interfases';
+import Colors from '@/utils/constants/Colors';
 
 interface ModalPrecioPuertaProps {
     visible: boolean;

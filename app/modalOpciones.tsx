@@ -2,8 +2,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { Button, Dialog } from 'react-native-paper';
-import { DatabaseManager, dropTables, initializeDatabase } from './utils/utilsDB';
-import Colors from '@/constants/Colors';
+import { DatabaseManager, dropTables, initializeDatabase } from '@/utils/utilsDB';
+import Colors from '@/utils/constants/Colors';
 import { Stack } from 'expo-router'; // Importa Stack de expo-router
 import DialogComponent from '@/components/DialogComponent';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { useState } from 'react';
 export default function ModalScreen() {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImporttDialog, setShowImportDialog] = useState(false);
+  const [showRestoreBack, setShowRestoreBack] = useState(false);
   return (
     <>
       {/* Configuración del header del modal */}
@@ -38,6 +39,26 @@ export default function ModalScreen() {
             await initializeDatabase();
           }}>
           Eliminar DB
+        </Button>
+
+        <Button
+          style={styles.buttonStyle}
+          labelStyle={{ fontSize: 16 }}
+          textColor={Colors.colors.text}
+          onPress={async () => {
+            await DatabaseManager.createBackup();
+          }}>
+          Crear Backup
+        </Button>
+
+        <Button
+          style={styles.buttonStyle}
+          labelStyle={{ fontSize: 16 }}
+          textColor={Colors.colors.text}
+          onPress={() => {
+            setShowRestoreBack(true)
+          }}>
+          Restaurar Backup
         </Button>
 
         <Button
@@ -76,6 +97,17 @@ export default function ModalScreen() {
             onConfirm={async () => {
               await DatabaseManager.pickDatabaseForImport();
               setShowImportDialog(false);
+            }}
+          />
+          : null}
+        {showRestoreBack ?
+          <DialogComponent
+            Title='Restaurar Backup'
+            Content_text='Restaurar un backup eliminara los datos actuales, desea continuar?'
+            onCancel={() => setShowRestoreBack(false)}
+            onConfirm={async () => {
+              await DatabaseManager.restoreBackup((await DatabaseManager.listBackups())[0])
+              setShowRestoreBack(false);
             }}
           />
           : null}

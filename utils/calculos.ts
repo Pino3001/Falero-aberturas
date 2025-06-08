@@ -1,7 +1,6 @@
-import { cortinasAbrevEnum, cortinasEnum, PerfilesEnum, seriesEnum } from "@/constants/variablesGlobales";
-import { AberturaPresupuestoOption, CortinaOption, PerfilDimension, PerfilesOption, PerfilesOptionDefault, PerfilesSeries, PresupuestosOption, SerieOption } from "../../constants/interfases";
-import { useState } from "react";
-import { determinarPerfiles } from "./utilsDB";
+import { coloresEnum, cortinasAbrevEnum, cortinasEnum, PerfilesEnum, seriesEnum } from "./constants/variablesGlobales";
+import { CortinaOption, PerfilesOption, PerfilesSeries, PresupuestosOption, SerieOption } from "./constants/interfases";
+import { calcularPrecioVentana, determinarPerfiles } from "./operacionesDB";
 
 
 interface aComprarProps {
@@ -239,4 +238,58 @@ export const abreviarCortina = (cortina_id: number, cortinas: CortinaOption[]): 
     }
     return cortinasAbrevEnum.ninguna;
 
+}
+
+export const compararAberturaColores = async (
+  presupuesto_comparar: PresupuestosOption,
+  colores_comparar: CortinaOption[]
+): Promise<PresupuestosOption[]> => {
+
+  let lista: PresupuestosOption[] = [];
+  
+  for (const col_comparar of colores_comparar) {
+    const nuevoPresupuesto = await copiarPresupuestoConNuevoColor(
+      presupuesto_comparar, 
+      col_comparar.id
+    );
+    lista = [...lista, nuevoPresupuesto];
+  }
+  
+  return lista;
+};
+
+
+async function copiarPresupuestoConNuevoColor(
+  presupuestoOriginal: PresupuestosOption,
+  nuevoColorId: number
+): Promise<PresupuestosOption> {
+  // Crear copias de las ventanas con el nuevo color y calcula sus precios
+  const ventanasActualizadas = await Promise.all(
+    presupuestoOriginal.ventanas.map(async (ventana) => {
+      const ventanaConNuevoColor = {
+        ...ventana,
+        id_color_aluminio: nuevoColorId,
+      };
+
+      const nuevoPrecio = await calcularPrecioVentana(ventanaConNuevoColor);
+
+      return {
+        ...ventanaConNuevoColor,
+        precio_unitario: nuevoPrecio,
+      };
+    })
+  );
+
+  // Calcular el nuevo precio_total
+  const nuevoPrecioTotal = ventanasActualizadas.reduce(
+    (total, ventana) => total + (ventana.cantidad * ventana.precio_unitario),
+    0
+  );
+
+  // Presupuesto actualizado
+  return {
+    ...presupuestoOriginal,
+    ventanas: ventanasActualizadas,
+    precio_total: nuevoPrecioTotal,
+  };
 }

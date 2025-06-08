@@ -1,5 +1,5 @@
-import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, SerieOptionDefault } from "@/constants/interfases";
-import { cortinasEnum, DATABASE_NAME, PerfilesEnum, preciosVariosEnum, Tablas } from "@/constants/variablesGlobales";
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, SerieOptionDefault } from "./constants/interfases";
+import { cortinasEnum, DATABASE_NAME, PerfilesEnum, preciosVariosEnum, Tablas } from "./constants/variablesGlobales";
 import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabaseSync(DATABASE_NAME);

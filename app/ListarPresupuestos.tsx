@@ -1,11 +1,11 @@
-import { getPresupuestos, getPresupuestoByID } from "@/app/utils/operacionesDB";
-import { useBD } from "@/contexts/BDContext";
+import { getPresupuestos, getPresupuestoByID } from "@/utils/operacionesDB";
+import { useBD } from "@/utils/contexts/BDContext";
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { ActivityIndicator, Button, Card, Dialog, IconButton, List } from "react-native-paper";
 import ModalMostrarPresupuesto from "../components/_modales/ModalMostrarPresupuesto";
-import { PresupuestosOption, PresupuestosOptionDefault } from "@/constants/interfases";
-import Colors from "@/constants/Colors";
+import { PresupuestosOption, PresupuestosOptionDefault } from "@/utils/constants/interfases";
+import Colors from "@/utils/constants/Colors";
 import SwipeableRow from "@/components/SwipeableRow"
 
 export default function ListarPresupuestos({ path }: { path: string }) {

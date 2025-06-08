@@ -1,7 +1,7 @@
 import { StyleSheet, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
 import EditScreenInfo from '../EditNuevoPresupuesto';
 import { View } from '@/components/Themed';
-import Colors from '@/constants/Colors';
+import Colors from '@/utils/constants/Colors';
 
 export default function TabOneScreen() {
   return (

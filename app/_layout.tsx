@@ -4,10 +4,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import 'react-native-reanimated';
-
 import { useColorScheme } from '@/components/useColorScheme';
-import { BDProvider } from '@/contexts/BDContext';
+import { BDProvider } from '@/utils/contexts/BDContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 
@@ -55,7 +53,7 @@ function RootLayoutNav() {
         <BDProvider>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="modalOpciones" options={{ presentation: 'modal' }} />
           </Stack>
         </BDProvider>
       </ThemeProvider>

@@ -5,7 +5,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import Entypo from '@expo/vector-icons/Entypo';
-import Colors from '@/constants/Colors';
+import Colors from '@/utils/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
@@ -34,7 +34,7 @@ export default function TabLayout() {
               headerShown: useClientOnlyValue(false, true),
             }}>
             <Tabs.Screen
-              name="nuevo_presupuesto"
+              name="index"
               options={{
                 title: 'Nuevo Presupuesto',
                 tabBarIcon: ({ color }) => <Entypo name="calculator" size={24} color={color} />,

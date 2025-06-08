@@ -1,9 +1,8 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import * as SQLite from 'expo-sqlite';
-import { initializeDatabase } from '@/app/utils/utilsDB';
-import { AberturasEnum } from '@/constants/variablesGlobales';
-import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/constants/interfases';
-import { dropPresupuesto, insertarPresupuestoConItems, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioVarios } from '@/app/utils/operacionesDB';
+import { initializeDatabase } from '@/utils/utilsDB';
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/utils/constants/interfases';
+import { dropPresupuesto, insertarPresupuestoConItems, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioVarios } from '@/utils/operacionesDB';
 
 const db = SQLite.openDatabaseAsync('falero.db');
 console.log('Database opened:', db);

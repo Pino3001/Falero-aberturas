@@ -1,12 +1,11 @@
 // GenerarPDF.tsx
-import React, { useEffect } from 'react';
-import { Alert, Image } from 'react-native';
+import { Alert, Image, Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
 import { abreviarCortina } from './calculos';
-import { ColorOption, CortinaOption, PresupuestosOption } from '../../constants/interfases';
+import { ColorOption, CortinaOption, PresupuestosOption } from './constants/interfases';
 
 interface pdfProps {
   cortinas: CortinaOption[],
@@ -18,36 +17,89 @@ const loadImageAsBase64 = async (imageModule: number) => {
   try {
     const asset = Asset.fromModule(imageModule);
 
-    // En desarrollo, puede que necesitemos descargarlo
+    // Descargar el asset si no está disponible localmente
     if (!asset.localUri) {
       await asset.downloadAsync();
     }
 
-    // Si estamos en producción y el asset está empaquetado
     if (asset.localUri) {
-      const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
+      // Normalizar el URI para Android
+      const normalizedUri = Platform.OS === 'android' 
+        ? asset.localUri.replace('file:/', 'file:///')
+        : asset.localUri;
+
+      // Crear ruta temporal única
+      const tempFileName = `temp_${Date.now()}_${asset.name}`;
+      const tempPath = `${FileSystem.cacheDirectory}${tempFileName}`;
+
+      // Copiar a ubicación temporal
+      await FileSystem.copyAsync({
+        from: normalizedUri,
+        to: tempPath
+      });
+
+      // Leer como base64
+      const base64 = await FileSystem.readAsStringAsync(tempPath, {
         encoding: FileSystem.EncodingType.Base64
       });
+
+      // Eliminar inmediatamente después de usar
+      await FileSystem.deleteAsync(tempPath, { idempotent: true });
+
       return `data:${asset.type || 'image/png'};base64,${base64}`;
     }
 
-    // Fallback para desarrollo con Metro bundler
-    return Image.resolveAssetSource(imageModule).uri;
+    // Fallback para desarrollo
+    const source = Image.resolveAssetSource(imageModule);
+    return source.uri || '';
   } catch (error) {
-    console.warn('Error cargando imagen:', error);
-    return ''; // Imagen vacía si falla
+    console.error('Error cargando imagen:', error);
+    return '';
   }
 };
 
-// Subcarpeta donde se guardan los pdf
-const PDF_SUBFOLDER = `${FileSystem.documentDirectory}PresupuestosPDF/`;
+const cleanImageCache = async (daysToKeep: number = 1) => {
+  try {
+    if (!FileSystem.cacheDirectory) {
+      throw new Error('FileSystem.cacheDirectory is null');
+    }
+    const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
+    const currentTime = Date.now();
+    
+    const cleanupPromises = files.map(async (file) => {
+      if (file.match(/\.(jpg|jpeg|png|gif|bmp|temp_)/i)) {
+        const filePath = `${FileSystem.cacheDirectory}${file}`;
+        const fileInfo = await FileSystem.getInfoAsync(filePath);
+        
+        if (fileInfo.exists) {
+          // Borrar archivos temporales antiguos (mayores a daysToKeep días)
+          const fileAgeDays = (currentTime - fileInfo.modificationTime) / (1000 * 60 * 60 * 24);
+          if (file.startsWith('temp_') || fileAgeDays > daysToKeep) {
+            await FileSystem.deleteAsync(filePath, { idempotent: true });
+          }
+        }
+      }
+    });
 
-// Verificar que exista la subcarpeta y si no crearla
+    await Promise.all(cleanupPromises);
+    console.log('Limpieza de caché completada');
+  } catch (error) {
+    console.warn('Error durante la limpieza de caché:', error);
+  }
+};
+
+const PDF_SUBFOLDER = `${FileSystem.cacheDirectory}PresupuestosPDF/`;
+
 const crearSubCarpeta = async () => {
-  const dirInfo = await FileSystem.getInfoAsync(PDF_SUBFOLDER);
-  if (!dirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(PDF_SUBFOLDER, { intermediates: true });
-    console.log("📁 Carpeta de PDFs creada:", PDF_SUBFOLDER);
+  try {
+    const dirInfo = await FileSystem.getInfoAsync(PDF_SUBFOLDER);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(PDF_SUBFOLDER, { intermediates: true });
+      console.log("📁 Carpeta de PDFs creada:", PDF_SUBFOLDER);
+    }
+  } catch (error) {
+    console.error("Error al crear carpeta:", error);
+    throw error;
   }
 };
 
@@ -73,6 +125,7 @@ const cleanPDFsSubCarpeta = async (mantenerUltimos = 5) => {
     // Borrar archivos excedentes
     if (mantenerUltimos > 0 && pdfFiles.length > mantenerUltimos) {
       const filesToDelete = pdfFiles.slice(mantenerUltimos);
+      await cleanImageCache();
       for (const file of filesToDelete) {
         await FileSystem.deleteAsync(`${PDF_SUBFOLDER}${file}`);
         console.log(`🧹 Eliminado PDF antiguo: ${file}`);
@@ -86,11 +139,13 @@ const cleanPDFsSubCarpeta = async (mantenerUltimos = 5) => {
 };
 
 export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) => {
-  const logo_empresa = await loadImageAsBase64(require('@/assets/images/ffalero.png'));
-  const banco_republica = await loadImageAsBase64(require('@/assets/images/banco_republica.png'));
-  const mercado_pago = await loadImageAsBase64(require('@/assets/images/mercado_pago.png'));
-  const insta = await loadImageAsBase64(require('@/assets/images/instagram.png'));
-  const face = await loadImageAsBase64(require('@/assets/images/facebook.png'));
+  const [logo_empresa, banco_republica, mercado_pago, insta, face] = await Promise.all([
+    loadImageAsBase64(require('@/assets/images/ffalero.png')),
+    loadImageAsBase64(require('@/assets/images/banco_republica.png')),
+    loadImageAsBase64(require('@/assets/images/mercado_pago.png')),
+    loadImageAsBase64(require('@/assets/images/instagram.png')),
+    loadImageAsBase64(require('@/assets/images/facebook.png'))
+  ]);
 
   const html = `
 <html lang="es">
@@ -181,13 +236,14 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       background-color: #117a7a;
       color: white;
       padding: 12px 8px;
-      text-align: center;
       font-weight: 600;
+      font-size: 1.5rem;
     }
 
     td {
       padding: 10px 8px;
       border: 1px solid #ddd;
+      font-size: 1.5rem;
       text-align: left;
     }
 
@@ -300,7 +356,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
   <div class="header">
     <h1>Presupuesto</h1>
     <div class="header-content">
-      <img class="header-logo" src=${logo_empresa} alt="Logo FFalero">
+      <img class="header-logo" src="${logo_empresa} "alt="Logo FFalero">
       <div class="header-titles">
         <h3>${presupuesto.nombre_cliente || ''}</h3>
         <p>Fecha: ${presupuesto.fecha.toLocaleDateString()}</p>
@@ -342,10 +398,10 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
           <span class="footer-title">INFORMACIÓN DE PAGO:</span>
           <div class="payment-logos">
             <div class="payment-logo">
-              <img class="br-logo" src=${banco_republica} alt="Banco República">
+              <img class="br-logo" src="${banco_republica}" alt="Banco República">
             </div>
             <div class="mp-logo-container">
-              <img class="mp-logo" src=${mercado_pago} alt="Mercado Pago">
+              <img class="mp-logo" src="${mercado_pago}" alt="Mercado Pago">
             </div>
           </div>
           <div>Nombre de cuenta: Federico Falero</div>
@@ -357,8 +413,8 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
           <div>WhatsApp: 099080052</div>
           <div style="font-size: 14px">eMail: Fedefalero20@gmail.com</div>
           <div class="social-icons">
-            <img class="social-icon" src=${insta} alt="Instagram">
-            <img class="social-icon" src=${face} alt="Facebook">
+            <img class="social-icon" src="${insta}" alt="Instagram">
+            <img class="social-icon" src="${face}" alt="Facebook">
           </div>
         </div>
 
@@ -377,41 +433,38 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
 `;
 
   try {
-    // Crear subcarpeta si no existe
-    await crearSubCarpeta();
-    await cleanPDFsSubCarpeta(5);
+    await Promise.all([crearSubCarpeta(), cleanPDFsSubCarpeta(5)]);
 
-    // Verificar si Sharing está disponible
-    if (!(await Sharing.isAvailableAsync())) {
-      throw new Error('La función de compartir no está disponible en este dispositivo');
-    }
-
-    // Generar PDF temporal
-    const { uri: tempUri } = await Print.printToFileAsync({ html });
-    if (!tempUri) throw new Error("No se pudo generar el PDF.");
-
-    //  Definir nuevo nombre de pdf en la subcarpeta
-    const nombreClienteLimpio = presupuesto.nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_'); // Evitar nombres no admitidos para archivos
+    // Generar PDF directamente en la ubicación final
+    const nombreClienteLimpio = presupuesto.nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_');
     const newFileName = `${PDF_SUBFOLDER}Presupuesto_${nombreClienteLimpio}_${new Date().getFullYear()}.pdf`;
 
-    // Mover a la subcarpeta
+    // Generar PDF directamente en la ubicación deseada
+    const { uri } = await Print.printToFileAsync({
+      html,
+      width: 842,  // Ancho en puntos (A4)
+      height: 1191, // Alto en puntos (A4)
+      base64: false
+    });
+
+    // Renombrar/mover el archivo
     await FileSystem.moveAsync({
-      from: tempUri,
+      from: uri,
       to: newFileName
     });
+
+    // Verificar que el archivo existe
+    const fileInfo = await FileSystem.getInfoAsync(newFileName);
+    if (!fileInfo.exists) {
+      throw new Error('El archivo PDF no se creó correctamente');
+    }
 
     // Compartir
     await Sharing.shareAsync(newFileName, {
       mimeType: 'application/pdf',
-      dialogTitle: 'Compartir Presupuesto PDF',
+      dialogTitle: 'Compartir Presupuesto',
+      UTI: 'com.adobe.pdf'
     });
-
-    // Limpieza final por si queda residual
-    try {
-      await FileSystem.deleteAsync(tempUri);
-    } catch (cleanupError) {
-      console.warn("⚠️ No se pudo limpiar el temporal:", cleanupError);
-    }
 
     console.log("✅ PDF guardado en:", newFileName);
     return newFileName;
@@ -424,16 +477,5 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       console.error('❌ Error crítico:', error);
       throw error;
     }
-  }
-};
-
-export const listFilesInDirectory = async () => {
-  try {
-    const files = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory as string);
-    console.log("Archivos en la carpeta:", files);
-    return files;
-  } catch (error) {
-    console.error("Error al listar archivos:", error);
-    return [];
   }
 };

@@ -1,4 +1,4 @@
-import { AberturasEnum, PerfilesEnum, seriesEnum } from "@/constants/variablesGlobales";
+import { AberturasEnum, seriesEnum } from "@/utils/constants/variablesGlobales";
 
 export interface ColorOption {
     color: string;

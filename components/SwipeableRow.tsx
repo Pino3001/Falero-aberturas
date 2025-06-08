@@ -7,7 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Icon } from 'react-native-paper';
-import Colors from '@/constants/Colors';
+import Colors from '@/utils/constants/Colors';
 import { useEffect } from "react";
 
 type SwipeableRowProps = {

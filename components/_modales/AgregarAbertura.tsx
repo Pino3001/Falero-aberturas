@@ -4,11 +4,11 @@ import { View, Text } from '../Themed';
 import { Button, Card, Chip, Portal, TextInput, Modal } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Dropdown } from 'react-native-element-dropdown';
-import { useBD } from '@/contexts/BDContext';
-import { calcularPrecioVentana } from '@/app/utils/operacionesDB';
-import { AberturasEnum, seriesEnum } from '@/constants/variablesGlobales';
-import { AberturaPresupuestoOption, ColorOption } from '@/constants/interfases';
-import Colors from '@/constants/Colors';
+import { useBD } from '@/utils/contexts/BDContext';
+import { calcularPrecioVentana } from '@/utils/operacionesDB';
+import { AberturasEnum, seriesEnum } from '@/utils/constants/variablesGlobales';
+import { AberturaPresupuestoOption, ColorOption } from '@/utils/constants/interfases';
+import Colors from '@/utils/constants/Colors';
 
 interface AgregarAberturaProps {
     ventanaAEditar?: AberturaPresupuestoOption;
@@ -17,12 +17,14 @@ interface AgregarAberturaProps {
     visible: boolean;
     hideModal: () => void;
     ref: React.RefObject<any>;
+    id_col_anterior?: number;
+    
 }
 export type AgregarAberturaRef = {
     open: () => void;
 };
 const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
-    ({ ventanaAEditar, handleDone, handleClose, visible, hideModal }, ref) => {
+    ({ ventanaAEditar, handleDone, handleClose, visible, hideModal, id_col_anterior }, ref) => {
         const { stateBD } = useBD();
         const { colors, series, cortinas } = stateBD;
         const aberturasCombo = [
@@ -49,7 +51,7 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                 vidrio: true,
                 mosquitero: false,
                 id_serie: series[0].id,
-                id_color_aluminio: colors[0].id,
+                id_color_aluminio: id_col_anterior ?? colors[0].id,
                 id_cortina: cortinas[0].id,
                 cantidad: 1,
                 precio_unitario: 0,
@@ -192,7 +194,7 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                             containerStyle={{ backgroundColor: Colors.colors.imput_black }}
                                             itemContainerStyle={{ height: 50, paddingVertical: -20 }}
                                             activeColor={Colors.colors.active_color}
-                                            itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
+                                            itemTextStyle={{ color: Colors.colors.text, fontSize: 14, marginVertical: -5 }}
 
                                             iconColor={Colors.colors.text}
                                             showsVerticalScrollIndicator={false}
@@ -286,7 +288,7 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 placeholder=" Selecciona la serie *"
                                                 placeholderStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14, marginVertical: -5 }}
                                                 selectedTextStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black, paddingVertical: 0 }}
                                                 iconColor={errors.serie ? Colors.colors.error : Colors.colors.text}
@@ -318,7 +320,7 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 placeholder=" Selecciona el color *"
                                                 placeholderStyle={{ color: errors.colorAluminio ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14, marginVertical: -5 }}
 
                                                 selectedTextStyle={{ color: errors.colorAluminio ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black }}
@@ -339,10 +341,10 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 valueField="id"
                                                 style={styles.outputMaterial}
                                                 itemContainerStyle={{ height: 50, paddingVertical: -20 }}
-                                                selectedTextStyle={{ color: Colors.colors.text, backgroundColor: Colors.colors.imput_black, fontSize: 11 }}
+                                                selectedTextStyle={{ color: Colors.colors.text, backgroundColor: Colors.colors.imput_black, fontSize: 14 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black }}
                                                 activeColor={Colors.colors.active_color}
-                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 10, marginVertical: -2 }}
+                                                itemTextStyle={{ color: Colors.colors.text, fontSize: 14, marginVertical: -2 }}
 
                                                 onChange={(item) =>
                                                     setState((prevState) => ({
@@ -448,7 +450,6 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps>(
                                                 placeholderStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text }}
                                                 activeColor={Colors.colors.active_color}
                                                 itemTextStyle={{ color: Colors.colors.text, fontSize: 12, marginVertical: -5 }}
-
                                                 selectedTextStyle={{ color: errors.serie ? Colors.colors.error : Colors.colors.text, fontSize: 14 }}
                                                 containerStyle={{ backgroundColor: Colors.colors.imput_black }}
                                                 iconColor={errors.serie ? Colors.colors.error : Colors.colors.text}

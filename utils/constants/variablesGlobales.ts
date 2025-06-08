@@ -1,6 +1,5 @@
-import { PerfilesOption } from "@/constants/interfases";
 
-export const DATABASE_NAME = 'falero.db';
+export const DATABASE_NAME = 'carpintelab.db';
 export const DATABASE_VERSION = 1;
 
 export enum PerfilesEnum {

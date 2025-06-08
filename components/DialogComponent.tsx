@@ -1,4 +1,4 @@
-import Colors from "@/constants/Colors";
+import Colors from "../utils/constants/Colors";
 import React, { useState } from "react";
 import { Dialog, Button, Text } from "react-native-paper";
  // Adjust the import path as needed

@@ -3,8 +3,8 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, DataTable, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ModalPrecioGramo from './ModalPrecioGramo';
-import { ColorOption } from '@/constants/interfases';
-import Colors from '@/constants/Colors';
+import { ColorOption } from '@/utils/constants/interfases';
+import Colors from '@/utils/constants/Colors';
 
 interface ModalColorProps {
     visible: boolean;

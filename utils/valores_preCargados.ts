@@ -1,5 +1,5 @@
-import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from "@/constants/interfases";
-import { coloresEnum, cortinasEnum, PerfilesEnum, preciosVariosEnum, seriesEnum } from "@/constants/variablesGlobales";
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from "./constants/interfases";
+import { coloresEnum, cortinasEnum, PerfilesEnum, preciosVariosEnum, seriesEnum } from "./constants/variablesGlobales";
 
 
 export const preciosVariosData: PreciosVariosOption[] = [
