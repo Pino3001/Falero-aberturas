@@ -4,14 +4,13 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
-import { abreviarCortina } from './calculos';
-import { ColorOption, CortinaOption, PresupuestosOption } from './constants/interfases';
+import { abreviarCortina } from '../calculos';
+import { ColorOption, CortinaOption, PresupuestosOption } from '../constants/interfases';
 
-interface pdfProps {
+interface pdfComparadoProps {
   cortinas: CortinaOption[],
-  presupuesto: PresupuestosOption,
-  colors: ColorOption[]
-
+  presupuesto: PresupuestosOption[],
+  colors: ColorOption[],
 }
 const loadImageAsBase64 = async (imageModule: number) => {
   try {
@@ -24,7 +23,7 @@ const loadImageAsBase64 = async (imageModule: number) => {
 
     if (asset.localUri) {
       // Normalizar el URI para Android
-      const normalizedUri = Platform.OS === 'android' 
+      const normalizedUri = Platform.OS === 'android'
         ? asset.localUri.replace('file:/', 'file:///')
         : asset.localUri;
 
@@ -65,12 +64,12 @@ const cleanImageCache = async (daysToKeep: number = 1) => {
     }
     const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
     const currentTime = Date.now();
-    
+
     const cleanupPromises = files.map(async (file) => {
       if (file.match(/\.(jpg|jpeg|png|gif|bmp|temp_)/i)) {
         const filePath = `${FileSystem.cacheDirectory}${file}`;
         const fileInfo = await FileSystem.getInfoAsync(filePath);
-        
+
         if (fileInfo.exists) {
           // Borrar archivos temporales antiguos (mayores a daysToKeep días)
           const fileAgeDays = (currentTime - fileInfo.modificationTime) / (1000 * 60 * 60 * 24);
@@ -138,7 +137,7 @@ const cleanPDFsSubCarpeta = async (mantenerUltimos = 5) => {
   }
 };
 
-export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) => {
+export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdfComparadoProps) => {
   const [logo_empresa, banco_republica, mercado_pago, insta, face] = await Promise.all([
     loadImageAsBase64(require('@/assets/images/ffalero.png')),
     loadImageAsBase64(require('@/assets/images/banco_republica.png')),
@@ -147,9 +146,8 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     loadImageAsBase64(require('@/assets/images/facebook.png'))
   ]);
 
-  const html = `
+  let html = `
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
   <style>
@@ -266,7 +264,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     .total-amount {
       display: inline-block;
       margin: 0;
-      font-size: 18px;
+      font-size: 16px;
       color: #d32f2f;
       font-weight: bold;
     }
@@ -358,8 +356,8 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     <div class="header-content">
       <img class="header-logo" src="${logo_empresa} "alt="Logo FFalero">
       <div class="header-titles">
-        <h3>${presupuesto.nombre_cliente || ''}</h3>
-        <p>Fecha: ${presupuesto.fecha.toLocaleDateString()}</p>
+        <h3>${presupuesto[0].nombre_cliente || ''}</h3>
+        <p>Fecha: ${presupuesto[0].fecha.toLocaleDateString()}</p>
       </div>
     </div>
   </div>
@@ -370,25 +368,27 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       <tr>
         <th>Descripción</th>
         <th>Cant.</th>
-        <th>Precio</th>
+        ${presupuesto.map(color_pre =>
+    `<th>${colors.find(i => i.id === color_pre.ventanas[0].id_color_aluminio)?.color}</th>`
+  ).join('')}
       </tr>
     </thead>
     <tbody>
-      ${presupuesto.ventanas.map(ventana =>
+      ${presupuesto[0].ventanas.map((ventana, index) =>
     `<tr>
-        <td>${ventana.tipo_abertura} ${abreviarCortina(ventana.id_cortina || 0, cortinas)} ${ventana.ancho} X ${ventana.alto} ${colors.find(c =>
-      c.id === ventana.id_color_aluminio)?.color || ''}</td>
+        <td>${ventana.tipo_abertura} ${abreviarCortina(ventana.id_cortina || 0, cortinas)} ${ventana.ancho} X ${ventana.alto}</td>
         <td style="text-align: center;">${ventana.cantidad}</td>
-        <td style="text-align: center;">U$S ${(ventana.precio_unitario * ventana.cantidad).toFixed(2)}</td>
-      </tr>`
+        ${presupuesto.map(comparado =>`<td style="text-align: center;" > U$S ${(comparado.ventanas[index].precio_unitario * comparado.ventanas[index].cantidad).toFixed(2)}</td>`).join('')}
+        </tr>`).join('')}
+  <td></td>
+  <td></td>
+    ${presupuesto.map(presu =>
+    `<td><span class="total-label">TOTAL:</span>
+    <span class="total-amount">U$S ${presu.precio_total.toFixed(2)}</span></td>`
   ).join('')}
+
     </tbody>
   </table>
-
-  <div class="total-section">
-    <span class="total-label">TOTAL A PAGAR:</span>
-    <span class="total-amount">U$S ${presupuesto.precio_total.toFixed(2)}</span>
-  </div>
 
     <div class="footer">
      <div class="divider-footer"></div>
@@ -411,9 +411,11 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
         <div class="footer-section">
           <span class="footer-title">CONTACTO:</span>
           <div>WhatsApp: 099080052</div>
-          <div style="font-size: 14px">eMail: Fedefalero20@gmail.com</div>
+          <div style="font-size: 14px">eMail: fedefalero20@gmail.com</div>
           <div class="social-icons">
-            <img class="social-icon" src="${insta}" alt="Instagram">
+            <a href="https://www.instagram.com/carpinteria.aluminiofedefalero" target="_blank">
+              <img class="social-icon" src="${insta}" alt="Instagram">
+            </a>
             <img class="social-icon" src="${face}" alt="Facebook">
           </div>
         </div>
@@ -436,14 +438,14 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     await Promise.all([crearSubCarpeta(), cleanPDFsSubCarpeta(5)]);
 
     // Generar PDF directamente en la ubicación final
-    const nombreClienteLimpio = presupuesto.nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_');
+    const nombreClienteLimpio = presupuesto[0].nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_');
     const newFileName = `${PDF_SUBFOLDER}Presupuesto_${nombreClienteLimpio}_${new Date().getFullYear()}.pdf`;
 
     // Generar PDF directamente en la ubicación deseada
     const { uri } = await Print.printToFileAsync({
       html,
-      width: 842,  // Ancho en puntos (A4)
-      height: 1191, // Alto en puntos (A4)
+      width: 595,  // Ancho en puntos (A4)
+      height: 842, // Alto en puntos (A4)
       base64: false
     });
 

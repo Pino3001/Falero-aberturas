@@ -1,20 +1,26 @@
-import { getPresupuestos, getPresupuestoByID } from "@/utils/operacionesDB";
+import { getPresupuestos, getPresupuestoByID, buscarPresupuestosNombre } from "@/utils/_db/operacionesDB";
 import { useBD } from "@/utils/contexts/BDContext";
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
-import { ActivityIndicator, Button, Card, Dialog, IconButton, List } from "react-native-paper";
+import { View, FlatList } from "react-native";
+import { ActivityIndicator, Button, Card, Dialog, IconButton, List, Surface, TextInput, Text } from "react-native-paper";
 import ModalMostrarPresupuesto from "../components/_modales/ModalMostrarPresupuesto";
 import { PresupuestosOption, PresupuestosOptionDefault } from "@/utils/constants/interfases";
 import Colors from "@/utils/constants/Colors";
 import SwipeableRow from "@/components/SwipeableRow"
+import { RefreshControl } from "react-native-gesture-handler";
+import { useTheme } from '@/utils/contexts/ThemeContext';
+
 
 export default function ListarPresupuestos({ path }: { path: string }) {
+    const { colors } = useTheme();
     const [presupuestos, setPresupuestos] = useState<PresupuestosOption[] | undefined>(undefined);
     const [presupuestoSelec, setPresupuestoSelec] = useState<PresupuestosOption>(PresupuestosOptionDefault);
     const [modal, setModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<PresupuestosOption | null>(null);
     const [showDialog, setShowDialog] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [buscador, setBuscador] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     const handleDelete = async (item: PresupuestosOption) => {
         setItemToDelete(item);
@@ -46,6 +52,27 @@ export default function ListarPresupuestos({ path }: { path: string }) {
         fetchData();
     }, [presupuestosUltimaAct]);
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                if (searchText.length > 0) {
+                    try {
+                        const resultados = await buscarPresupuestosNombre(searchText);
+                        setPresupuestos(resultados);
+                    } catch (error) {
+                        console.error("Error al buscar:", error);
+                    }
+                } else {
+                    const presupuestos = await getPresupuestos();
+                    setPresupuestos(presupuestos)
+                }
+            } catch (error) {
+                console.error('Error cargando presupuestos:', error);
+            }
+        }
+        fetchData();
+    }, [searchText]);
+
     if (loading) {
         return (
             <View style={{
@@ -55,10 +82,22 @@ export default function ListarPresupuestos({ path }: { path: string }) {
             }}>
                 <ActivityIndicator
                     size={68}
-                    color={Colors.colors.complementario} // Cambia el color según tu tema
                 />
             </View>
         );
+    }
+
+    const handleSearch = async (text: string) => {
+        setSearchText(text);
+    };
+
+    const activarBuscador = () => {
+        if (buscador) {
+            setSearchText('');
+            setBuscador(false);
+        } else {
+            setBuscador(true);
+        }
     }
 
     return (
@@ -67,6 +106,52 @@ export default function ListarPresupuestos({ path }: { path: string }) {
                 data={presupuestos}
                 style={{ width: "100%" }}
                 keyExtractor={(item) => item.id.toString()}
+                scrollEventThrottle={16}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={false}
+                        onRefresh={() => activarBuscador()}
+                        progressViewOffset={1000}
+                        colors={["transparent"]}
+                    />
+                }
+                ListHeaderComponent={
+                    buscador ?
+                        <Surface style={{ flexDirection: "row", backgroundColor: 'transparent', marginLeft: 10 }}>
+
+                            <TextInput
+                                mode="outlined"
+                                label="Buscar"
+                                onChangeText={handleSearch}
+                                style={{
+                                    width: '80%',
+                                    height: 40,
+                                    backgroundColor: 'transparent',
+                                }}
+                                right={
+                                    <TextInput.Icon
+                                        icon="magnify"
+                                        color={colors.primary}
+                                        size={26}
+                                    />
+                                }
+                                outlineColor={colors.primary}
+                                activeOutlineColor={colors.primary}
+                                dense={true}
+                            />
+
+                            <IconButton
+                                icon="filter"
+                                onPress={() => {
+                                    setBuscador(false);
+                                    setSearchText('');
+                                }}
+                                style={{ width: '10%' }}
+                                iconColor={colors.primary}
+                            />
+                        </Surface>
+                        : null
+                }
                 renderItem={({ item }) => (
                     <View style={{ width: '100%', paddingHorizontal: 0 }}>
                         <SwipeableRow
@@ -80,40 +165,37 @@ export default function ListarPresupuestos({ path }: { path: string }) {
                         >
                             <Card style={{
                                 borderRadius: 8,
-                                borderColor: Colors.colors.complementario,
+                                borderColor: colors.primary,
+                                backgroundColor: colors.surface,
                                 width: '98%', alignSelf: 'center',
                                 marginVertical: 4,
-                                backgroundColor: Colors.colors.background_modal,
                                 borderWidth: 1,
                             }}>
                                 <List.Section
                                     style={{
-
                                         marginVertical: 4
                                     }}>
 
                                     <List.Item
                                         title={
                                             <Text>
-                                                <Text style={{ fontSize: 14, color: Colors.colors.text, fontWeight: "bold" }}>Cliente: </Text>
-                                                <Text style={{ fontSize: 14, color: Colors.colors.text }}>{item.nombre_cliente.substring(0, 30)}</Text>
+                                                <Text variant="bodyMedium"> Cliente: </Text>
+                                                <Text variant="titleSmall">{item.nombre_cliente.substring(0, 30)}</Text>
                                             </Text>
                                         }
-                                        titleStyle={{ color: Colors.colors.text }}
                                         description={
-                                            <View style={{ flexDirection: "row", justifyContent: "space-between", width: '100%' }}>
+                                            <View style={{ flexDirection: "row", justifyContent: "space-between", width: '90%' }}>
                                                 <Text>
-                                                    <Text style={{ fontSize: 12, color: Colors.colors.text, fontWeight: "bold" }}>  Fecha: </Text>
-                                                    <Text style={{ fontSize: 12, color: Colors.colors.text }}>{item.fecha?.toLocaleDateString() || 0}</Text>
+                                                    <Text variant="headlineMedium">  Fecha: </Text>
+                                                    <Text variant="titleLarge">{item.fecha?.toLocaleDateString() || 0}</Text>
                                                 </Text>
                                                 <Text >
-                                                    <Text style={{ fontSize: 12, color: Colors.colors.text, fontWeight: "bold" }}>Total: </Text>
-                                                    <Text style={{ fontSize: 12, color: Colors.colors.text }}>{item.precio_total.toFixed(2)}</Text>
+                                                    <Text variant="headlineMedium">Total: </Text>
+                                                    <Text variant="titleLarge">{item.precio_total.toFixed(2)}</Text>
                                                 </Text>
                                             </View>
                                         }
-                                        descriptionStyle={{ color: '#bbbbbb' }}
-                                        left={props => <List.Icon {...props} icon="star" color={Colors.colors.text} />}
+                                        left={props => <List.Icon {...props} icon="star" color={colors.secondary} />}
                                     />
                                 </List.Section>
 
@@ -121,7 +203,7 @@ export default function ListarPresupuestos({ path }: { path: string }) {
                         </SwipeableRow>
                     </View>
                 )}
-                ListEmptyComponent={<List.Item title="No hay presupuestos" titleStyle={{color: Colors.colors.text}}/>}
+                ListEmptyComponent={<List.Item title="No hay presupuestos" />}
                 initialNumToRender={5}
                 maxToRenderPerBatch={5}
                 windowSize={10}
@@ -133,17 +215,17 @@ export default function ListarPresupuestos({ path }: { path: string }) {
                 onClose={() => setModal(false)}
                 animationType="none"
                 transparent={true}
-                presupuesto={presupuestoSelec}
+                initialPresupuesto={presupuestoSelec}
             />
 
             <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
-                <Dialog.Title style={{ color: Colors.colors.text }}>Confirmar eliminación</Dialog.Title>
+                <Dialog.Title >Eliminar</Dialog.Title>
                 <Dialog.Content>
-                    <Text style={{ color: Colors.colors.text }}>¿Estás seguro de eliminar este presupuesto?</Text>
+                    <Text >¿Estás seguro de eliminar este presupuesto?</Text>
                 </Dialog.Content>
                 <Dialog.Actions>
-                    <Button textColor={Colors.colors.complementario} onPress={() => setShowDialog(false)}>Cancelar</Button>
-                    <Button textColor={Colors.colors.complementario} onPress={confirmDelete}>Eliminar</Button>
+                    <Button onPress={() => setShowDialog(false)}>Cancelar</Button>
+                    <Button onPress={confirmDelete}>Eliminar</Button>
                 </Dialog.Actions>
             </Dialog>
         </>

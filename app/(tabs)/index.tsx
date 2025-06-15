@@ -1,53 +1,35 @@
-import { StyleSheet, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
+import { StyleSheet, TouchableWithoutFeedback, Keyboard, ScrollView, View } from 'react-native';
 import EditScreenInfo from '../EditNuevoPresupuesto';
-import { View } from '@/components/Themed';
-import Colors from '@/utils/constants/Colors';
+import { useTheme } from '@/utils/contexts/ThemeContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function TabOneScreen() {
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <ScrollView style={{ width: '100%', height: '100%' }}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+  const { colors } = useTheme();
 
-        <View style={styles.container}>
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
           <EditScreenInfo path="app/(tabs)/index.tsx" />
         </View>
-      </ScrollView>
-    </TouchableWithoutFeedback>
-
+      </TouchableWithoutFeedback>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
     flex: 1,
-    paddingTop: 40,
-    backgroundColor: Colors.colors.background,
     width: '100%',
-    height: '100%'
+    minHeight: '100%',
   },
   scrollContent: {
-    flexGrow: 1, // Hace que el contenido ocupe el 100% si es necesario
-  },
-  innerContent: {
-    flex: 1, // Opcional: si quieres que el contenido interno también expanda
-    minHeight: '80%', // Alternativa para asegurar el alto completo
+    flexGrow: 1,
   },
   containerKASV: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
+
 });

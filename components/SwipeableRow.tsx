@@ -6,8 +6,7 @@ import Animated, {
     runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Icon } from 'react-native-paper';
-import Colors from '@/utils/constants/Colors';
+import { Icon, useTheme } from 'react-native-paper';
 import { useEffect } from "react";
 
 type SwipeableRowProps = {
@@ -22,6 +21,7 @@ const SWIPE_THRESHOLD = 50;
 const SWIPE_SENSITIVITY = 20;
 
 const SwipeableRow: React.FC<SwipeableRowProps> = ({ onPress, onDelete, children, isDeleting }) => {
+    const { colors } = useTheme();
     const translateX = useSharedValue(0);
     const isSwiping = useSharedValue(false);
     const startX = useSharedValue(0);
@@ -38,7 +38,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({ onPress, onDelete, children
             isSwiping.value = false;
         })
         .onUpdate((event) => {
-            if (startX.value < 100) { 
+            if (startX.value < 100) {
                 if (Math.abs(event.translationX) > SWIPE_SENSITIVITY) {
                     isSwiping.value = true;
                 }
@@ -69,8 +69,8 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({ onPress, onDelete, children
 
     return (
         <View style={styles.container}>
-            <Animated.View 
-            style={[styles.deleteButton, deleteButtonStyle]}>
+            <Animated.View
+                style={[styles.deleteButton, deleteButtonStyle]}>
                 <TouchableOpacity
                     style={styles.deleteTouchable}
                     onPress={() => {
@@ -80,14 +80,14 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({ onPress, onDelete, children
                     <Icon
                         source="delete"
                         size={40}
-                        color={Colors.colors.complementario}
+                        color={colors.error}
                     />
                 </TouchableOpacity>
             </Animated.View>
 
             <GestureDetector gesture={panGesture}>
                 <Animated.View style={[animatedStyle, { width: '100%' }]}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={onPress}
                         activeOpacity={0.8}
                         style={{ width: '100%' }}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         width: MAX_SWIPE,
         justifyContent: 'center',
-        paddingHorizontal:25,
+        paddingHorizontal: 25,
         paddingRight: 25,
         zIndex: -1,
     },

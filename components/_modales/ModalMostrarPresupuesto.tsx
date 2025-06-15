@@ -1,30 +1,46 @@
-import { AberturaPresupuestoOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption } from '@/utils/constants/interfases';
-import { GenerarPDF } from '@/utils/pdfGenerator';
-import Colors from '@/utils/constants/Colors';
+import { AberturaPresupuestoOption, ColorOption, PerfilesOption, PerfilesOptionDefault, PresupuestosOption, PresupuestosOptionDefault } from '@/utils/constants/interfases';
+import { GenerarPDF } from '@/utils/_pdfGenerators/pdfGenerator';
 import { PerfilesEnum, preciosVariosEnum, seriesEnum } from '@/utils/constants/variablesGlobales';
 import { useBD } from '@/utils/contexts/BDContext';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { View, FlatList, Text } from 'react-native';
-import { Divider, Icon, IconButton, List, Portal, useTheme, Modal, FAB } from 'react-native-paper';
+import { View, FlatList } from 'react-native';
+import { Divider, Icon, IconButton, List, Portal, Modal, Menu, Button, Chip, Text } from 'react-native-paper';
+import { GenerarPdfComparado } from '@/utils/_pdfGenerators/pdfComparacion';
+import { compararAberturaColores } from '@/utils/calculos';
+import DialogComponent from '../DialogComponent';
+import AgregarAbertura from './AgregarAbertura';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '@/utils/contexts/ThemeContext';
 
 interface ModalMostrarPresupuestoProps {
   visible: boolean;
   onClose: () => void;
   animationType?: 'none' | 'slide' | 'fade';
   transparent?: boolean;
-  presupuesto: PresupuestosOption;
+  initialPresupuesto: PresupuestosOption;
 }
 
-const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent, presupuesto }: ModalMostrarPresupuestoProps) => {
-  const { stateBD } = useBD();
-  const { series, colors, perfiles, preciosVarios, cortinas } = stateBD;
-  const [pdf, setPdf] = useState(false);
-
+const ModalMostrarPresupuesto = ({ visible, onClose, initialPresupuesto }: ModalMostrarPresupuestoProps) => {
+  const { colors } = useTheme();
+  const [presupuesto, setLocalPresupuesto] = useState(initialPresupuesto || PresupuestosOptionDefault);
   useEffect(() => {
-    if (!visible)
-      setPdf(false);
-  }, [visible]);
+    if (initialPresupuesto) {
+      setLocalPresupuesto(initialPresupuesto);
+    }
+  }, [initialPresupuesto]);
+  const { stateBD, updatePresupuestoBDContext } = useBD();
+  const { series, acabado, perfiles, preciosVarios, cortinas } = stateBD;
+  const [visibleMenu, setVisibleMenu] = React.useState(false);
+  const [listComparar, setListComparar] = useState<ColorOption[]>([]);
+  const [selectedEdit, setSelectedEdit] = useState<AberturaPresupuestoOption>();
+  const [dialog, setDialog] = useState(false);
+  const [dialogEdit, setDialogEdit] = useState(false);
+  const [editAbertura, setEditAbertura] = useState(false);
+
+  const openMenu = () => setVisibleMenu(true);
+
+  const closeMenu = () => setVisibleMenu(false);
 
   const gramosAluminio = (ventana: AberturaPresupuestoOption): number => {
     const serie = series.find(x => x.id == ventana.id_serie);
@@ -99,7 +115,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
     const pesoAluminio = gramosAluminio(ventana);
 
     let costoAluminio = 0;
-    let precioColor = colors.find(c => c.id === ventana.id_color_aluminio)?.precio || 0;
+    let precioColor = acabado.find(c => c.id === ventana.id_color_aluminio)?.precio || 0;
     if (precioColor != undefined) {
       costoAluminio = pesoAluminio * precioColor;
     }
@@ -113,62 +129,110 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
     }
     return 0;
   }
-  const theme = useTheme();
+
+  const comparar = async () => {
+    if (listComparar.length > 0) {
+      const listaPresu = await compararAberturaColores(presupuesto, listComparar);
+      GenerarPdfComparado({ presupuesto: listaPresu, cortinas, colors: acabado });
+    } else {
+      setDialog(true);
+    }
+
+  }
+
+  const handleActualizarAberturaCompleta = async (ventanaEditada: AberturaPresupuestoOption) => {
+    try {
+
+      // Calcular nuevo estado del presupuesto
+      const nuevasVentanas = presupuesto.ventanas.map(v =>
+        v.id === ventanaEditada.id ? ventanaEditada : v
+      );
+
+      const nuevoPrecioTotal = nuevasVentanas.reduce(
+        (sum, ventana) => sum + (ventana.precio_unitario * ventana.cantidad),
+        0
+      );
+
+      const presupuestoActualizado = {
+        ...presupuesto,
+        ventanas: nuevasVentanas,
+        precio_total: parseFloat(nuevoPrecioTotal.toFixed(2))
+      };
+
+      await updatePresupuestoBDContext(presupuestoActualizado, ventanaEditada);
+
+      setLocalPresupuesto(presupuestoActualizado);
+      setEditAbertura(false);
+      setDialogEdit(false);
+      setSelectedEdit(undefined);
+
+      return presupuestoActualizado;
+
+    } catch (error) {
+      console.error('Error al actualizar abertura:', error);
+      throw error;
+    }
+  };
+
   return (
     <Portal>
       <Modal
         visible={visible}
         onDismiss={onClose}
-        contentContainerStyle={styles.containerStyle}
-        style={styles.overlay}
+        contentContainerStyle={[styles.containerStyle, { backgroundColor: colors.background }]}
+        style={{ backgroundColor: colors.backdrop }}
       >
         <View style={[styles.content]} >
           <View style={{ alignItems: 'flex-end' }}>
             <IconButton
               style={{ margin: 0 }}
               icon="close"
-              iconColor={Colors.colors.background}
               size={24}
               onPress={onClose}
             />
           </View>
           <View style={styles.listContainer}>
-            <View style={{ flexDirection: 'row', gap: 15, justifyContent: 'space-between' }}>
-              <Text style={{ color: Colors.colors.background, fontSize: 14, fontWeight: 'bold' }}>Cliente: {presupuesto?.nombre_cliente || ''}</Text>
-              <Text style={{ color: Colors.colors.background, fontSize: 14, fontWeight: 'bold' }}>Fecha: {presupuesto.fecha?.toLocaleDateString()}</Text>
+            <View style={{ flexDirection: 'row', gap: 15, justifyContent: 'space-between', width: '95%' }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', marginLeft: 10 }}>Cliente: {presupuesto?.nombre_cliente || ''}</Text>
+              <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Fecha: {presupuesto.fecha?.toLocaleDateString()}</Text>
             </View>
-            <Divider style={{ borderBlockColor: Colors.colors.complementario, borderWidth: 0.5, margin: 5 }}></Divider>
-            <View style={{ marginHorizontal: 10, margin: 5 }}>
-              <Text style={{ color: Colors.colors.background, fontSize: 14, fontWeight: 'bold' }}>Lista de aberturas:</Text>
+            <Divider style={{ borderBlockColor: colors.onBackground, borderWidth: 0.5, margin: 5 }}></Divider>
+            <View style={{ marginHorizontal: 20, margin: 5 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Lista de aberturas:</Text>
             </View>
             <FlatList
               data={presupuesto.ventanas}
-              style={{ width: "100%" }}
+              style={{ width: "100%", marginHorizontal: 10 }}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <List.Section style={{ width: '100%', marginVertical: 6 }}>
+                <List.Section
+                  style={{ width: "95%" }}>
                   <List.Accordion
+                    onLongPress={() => {
+                      setDialogEdit(true)
+                      setSelectedEdit(item)
+                    }}
+                    delayLongPress={500}
                     title={
                       <View style={{
-                        flexDirection: 'row', justifyContent: "space-between", width: "100%"
+                        flexDirection: 'row', justifyContent: "space-between", width: "98%"
                       }}>
                         <View style={{
                           flexDirection: 'row'
                         }}>
-                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>{item?.cantidad || ""} {item.tipo_abertura} </Text>
-                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>{item?.ancho || 0}</Text>
-                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>×</Text>
-                          <Text style={{ fontSize: 13, color: Colors.colors.background, fontWeight: 'bold' }}>{item?.alto || 0}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{item?.cantidad || ""} {item.tipo_abertura} </Text>
+                          <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{item?.ancho || 0}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: 'bold' }}>×</Text>
+                          <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{item?.alto || 0}</Text>
                         </View>
                         <View style={{ right: 0 }}>
-                          <Text style={{ fontSize: 13, color: Colors.colors.error }}>{((item?.precio_unitario || 0) * (item?.cantidad || 0)).toFixed(1)} U$S</Text>
+                          <Text style={{ fontSize: 13, color: colors.error }}>{((item?.precio_unitario || 0) * (item?.cantidad || 0)).toFixed(1)} U$S</Text>
                         </View>
                       </View>
                     }
-                    style={{ backgroundColor: Colors.colors.text }}
-                    contentStyle={{ marginRight: -20 }}
+                    style={{ backgroundColor: colors.background, width: "100%" }}
                     right={() => null}
-                    left={() => <Icon source="star" size={15} color={Colors.colors.complementario} />}
+                    left={() => <Icon source="star" size={15} color={colors.secondary} />}
                   >
                     <Divider />
                     <View style={{ paddingLeft: 0, marginTop: 10, marginBottom: 10 }}>
@@ -178,7 +242,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                         </View>
                         <View style={{ flexDirection: 'column', gap: 4, justifyContent: 'space-between' }}>
                           <Text style={{ fontSize: 12 }}>{series.find(c => c.id === item.id_serie)?.nombre || ''}</Text>
-                          <Text style={{ fontSize: 12 }}>{`Acabado: "${colors.find(c => c.id === item.id_color_aluminio)?.color || ''}"`}</Text>
+                          <Text style={{ fontSize: 12 }}>{`Acabado: "${acabado.find(c => c.id === item.id_color_aluminio)?.color || ''}"`}</Text>
                           <Text style={{ fontSize: 12 }}>{`Cant Aluminio: ${gramosAluminio(item)?.toFixed(2) || 0} kg`}</Text>
                         </View>
                       </View>
@@ -189,13 +253,13 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
 
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 12 }}>Aluminio:</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoAluminio(item)?.toFixed(1) || 0} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 12, color: colors.error }}>{`${costoAluminio(item)?.toFixed(1) || 0} US$`}</Text>
                         </View>
 
                         {item.vidrio ?
                           <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                             <Text style={{ textAlign: 'center', fontSize: 12 }}>Vidrio:</Text>
-                            <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoVidrio(item)?.toFixed(1) || 0} US$`}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: colors.error }}>{`${costoVidrio(item)?.toFixed(1) || 0} US$`}</Text>
                           </View>
                           : null
                         }
@@ -203,7 +267,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                         {item.mosquitero ?
                           <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                             <Text style={{ textAlign: 'center', fontSize: 12 }}>Mosquitero:</Text>
-                            <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoMosquitero(item)?.toFixed(1) || 0} US$`}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: colors.error }}>{`${costoMosquitero(item)?.toFixed(1) || 0} US$`}</Text>
                           </View>
                           : null
                         }
@@ -211,23 +275,23 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                         {item.id_cortina && item.id_cortina > 1 ?
                           <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                             <Text style={{ textAlign: 'center', fontSize: 12 }}>{cortinas.find(c => c.id === item.id_cortina)?.tipo || 'No especificado'}</Text>
-                            <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${costoCortina(item)?.toFixed(1) || 0} US$`}</Text>
+                            <Text style={{ textAlign: 'center', fontSize: 12, color: colors.error }}>{`${costoCortina(item)?.toFixed(1) || 0} US$`}</Text>
                           </View>
                           : null
                         }
 
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 12 }}>{`Accesorios`}</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 12, color: Colors.colors.error }}>{`${series.find(s => s.id == item.id_serie)?.precio_accesorios || 0} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 12, color: colors.error }}>{`${series.find(s => s.id == item.id_serie)?.precio_accesorios || 0} US$`}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Mano De Obra</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 14, color: Colors.colors.error }}>{`${costoManoDeObra(item)?.toFixed(1) || 0} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, color: colors.error }}>{`${costoManoDeObra(item)?.toFixed(1) || 0} US$`}</Text>
                         </View>
                         <Divider style={{ margin: 3 }}></Divider>
                         <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between' }}>
                           <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: 'bold' }}>Subtotal</Text>
-                          <Text style={{ textAlign: 'center', fontSize: 14, color: Colors.colors.error }}>{`${Math.round(((item?.precio_unitario || 0) * (item?.cantidad || 0)) * 10) / 10} US$`}</Text>
+                          <Text style={{ textAlign: 'center', fontSize: 14, color: colors.error }}>{`${Math.round(((item?.precio_unitario || 0) * (item?.cantidad || 0)) * 10) / 10} US$`}</Text>
                         </View>
                       </View>
                     </View>
@@ -236,58 +300,135 @@ const ModalMostrarPresupuesto = ({ visible, onClose, animationType, transparent,
                   </List.Accordion>
                 </List.Section>
               )}
-              ListEmptyComponent={<List.Item title="No hay aberturas" titleStyle={{ color: Colors.colors.background, fontSize: 13 }} />}
+              ListEmptyComponent={<List.Item title="No hay aberturas" titleStyle={{ color: colors.onBackground, fontSize: 13 }} />}
               initialNumToRender={5}
               maxToRenderPerBatch={5}
               windowSize={10}
             />
             <Divider style={{ margin: 3 }}></Divider>
-            <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', paddingHorizontal: 25, marginVertical: 10, marginBottom: 60 }}>
+            <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'space-between', paddingHorizontal: 35, marginVertical: 10, marginBottom: 'auto' }}>
               <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>Total</Text>
-              <Text style={{ textAlign: 'center', fontSize: 16, color: Colors.colors.error }}>{presupuesto.precio_total?.toFixed(1) || 0} U$S</Text>
+              <Text style={{ textAlign: 'center', fontSize: 16, color: colors.error }}>{presupuesto.precio_total?.toFixed(1) || 0} U$S</Text>
             </View>
             <View style={{ justifyContent: 'center', paddingHorizontal: 25, marginVertical: 10 }}>
             </View>
           </View>
-          <FAB
-            icon="share"
-            style={{
-              position: 'absolute',
-              margin: 16,
-              right: -10,
-              bottom: -10,
-              backgroundColor: Colors.colors.complementario
-            }}
-            color={Colors.colors.text}
-            onPress={() => { GenerarPDF({ presupuesto, colors, cortinas }); }}
-          />
-        </View>
 
+          <View style={{ flexDirection: 'row', gap: 50, justifyContent: 'space-between' }}>
+
+            <Menu
+              visible={visibleMenu}
+              onDismiss={closeMenu}
+              anchor={
+                <IconButton
+                  icon="compare-horizontal"
+                  size={44}
+                  iconColor={colors.primary}
+                  onPress={() => { openMenu(); }}
+                />
+              }>
+              <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>Comparar presupuesto</Text>
+              {acabado?.map(item => {
+                const isSelected = listComparar.some(e => e.id === item.id);
+                return (
+                  <Menu.Item
+                    key={item.id}
+                    onPress={() => {
+                      setListComparar(prev =>
+                        isSelected
+                          ? prev.filter(e => e.id !== item.id)
+                          : [...prev, item]
+                      );
+                    }}
+                    title={
+                      <Chip
+                        mode="outlined"
+                        icon={isSelected ?
+                          () => <MaterialCommunityIcons name="check" color={colors.onPrimary} size={20} /> :
+                          () => <MaterialCommunityIcons name="close" color={colors.primary} size={20} />
+                        }
+                        style={{
+                          backgroundColor: isSelected
+                            ? colors.primary
+                            : colors.primaryContainer,
+                        }}
+                        textStyle={{ color: isSelected ? colors.onPrimary : colors.onPrimaryContainer, }}
+                      >
+                        {item.color}
+                      </Chip>
+                    }
+                  />
+                );
+              })}
+              <Button
+                onPress={() => {
+                  closeMenu()
+                  comparar()
+                }}
+                style={{ backgroundColor: colors.primary, marginHorizontal: 10, borderRadius: 4 }}
+                textColor={colors.onPrimary}
+              >Comparar</Button>
+            </Menu>
+            <IconButton
+              icon="share"
+              size={40}
+              iconColor={colors.primary}
+              onPress={() => { GenerarPDF({ presupuesto, colors: acabado, cortinas }); }}
+            />
+          </View>
+
+        </View>
+        {editAbertura ?
+          <AgregarAbertura
+            ventanaAEditar={selectedEdit}
+            handleDone={(ventanaEditada) => {
+              handleActualizarAberturaCompleta(ventanaEditada)
+            }}
+            handleClose={() => {
+              setEditAbertura(false)
+              setSelectedEdit(undefined)
+              console.log('quedo con esto', selectedEdit)
+            }}
+            visible={true}
+            hideModal={() => setSelectedEdit(undefined)}
+          />
+          : null}
+        {dialog ?
+          <DialogComponent
+            Title='Cuidado!'
+            Content_text='Debes seleccionar al menos un color!'
+            onCancel={() => setDialog(false)}
+            onConfirm={() => setDialog(false)}
+          /> : null}
+        {dialogEdit ?
+          <DialogComponent
+            Title='Editar abertura'
+            Content_text={`Deseas editar ${selectedEdit?.tipo_abertura} ${selectedEdit?.alto} x ${selectedEdit?.ancho}`}
+            onCancel={() => { setDialogEdit(false) }}
+            onConfirm={() => {
+              setEditAbertura(true)
+              setDialogEdit(false)
+            }}
+          /> : null}
       </Modal>
-    </Portal>
+    </Portal >
   );
 };
 
 export default ModalMostrarPresupuesto;
 
 const styles = StyleSheet.create({
-  overlay: {
-    backgroundColor: Colors.colors.transparencia_modal,
-  },
   containerStyle: {
-    backgroundColor: Colors.colors.text,
     borderRadius: 8,
     alignSelf: 'center',
-    width: '90%',
+    width: '95%',
     height: '90%',
-    paddingHorizontal: 0
   },
   content: {
     flex: 1,
-    width: '90%',
-    height: '90%',
+    width: '100%',
+    height: '100%',
     alignSelf: 'center',
-    backgroundColor: Colors.colors.text,
     borderRadius: 10,
 
   },

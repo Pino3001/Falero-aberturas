@@ -1,11 +1,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import * as SQLite from 'expo-sqlite';
-import { initializeDatabase } from '@/utils/utilsDB';
-import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/utils/constants/interfases';
-import { dropPresupuesto, insertarPresupuestoConItems, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioVarios } from '@/utils/operacionesDB';
-
-const db = SQLite.openDatabaseAsync('falero.db');
-console.log('Database opened:', db);
+import { initializeDatabase } from '@/utils/_db/utilsDB';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/utils/constants/interfases';
+import { dropPresupuesto, insertarPresupuestoConItems, updateAbertura, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioTotalPresupuesto, updatePrecioVarios } from '@/utils/_db/operacionesDB';
 
 
 interface BDContextType {
@@ -19,6 +15,7 @@ interface BDContextType {
     insertarPresupuestoConItemsBDContext: (obj: PresupuestosOption) => Promise<PresupuestosOption>;
     updateAccesorioPrecioBDContext: (serie: SerieOption) => Promise<void>;
     dropPresupuestoBDContext: (obj: PresupuestosOption) => Promise<void>;
+    updatePresupuestoBDContext: (presu_actualizado: PresupuestosOption, abertura_actualizada: AberturaPresupuestoOption) => Promise<void>;
     //obtenerKilajePerfil: (id:string, serie: string) => number;// gramos x metro
 }
 
@@ -28,7 +25,7 @@ interface BDProviderProps {
 
 export const BDContext = createContext<BDContextType>({
     stateBD: {
-        colors: [],
+        acabado: [],
         series: [],
         perfiles: [],
         cortinas: [],
@@ -40,6 +37,7 @@ export const BDContext = createContext<BDContextType>({
     updatePrecioVariosBDContext: async () => { },
     updatePrecioCortinaBDContext: async () => { },
     updatePrecioPuertaBDContext: async () => { },
+    updatePresupuestoBDContext: async () => { },
     insertarPresupuestoConItemsBDContext: async () => {
         throw new Error('insertarPresupuestoConItemsBDContext not implemented');
     },
@@ -53,7 +51,7 @@ export const BDContext = createContext<BDContextType>({
 
 // Define the state type explicitly
 export interface BDState {
-    colors: ColorOption[];
+    acabado: ColorOption[];
     series: SerieOption[];
     perfiles: PerfilesOption[];
     cortinas: CortinaOption[];
@@ -63,7 +61,7 @@ export interface BDState {
 export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
     const [presupuestosUltimaAct, setPresupuestosUltimaAct] = useState(new Date());
     const [stateBD, setStateBD] = useState<BDState>({
-        colors: [],
+        acabado: [],
         series: [],
         perfiles: [],
         cortinas: [],
@@ -115,18 +113,18 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         });
     }
 
-    const updatePrecioPuertaBDContext = async (color: ColorOption) => {
-        await updatePrecioPuerta(color);
+    const updatePrecioPuertaBDContext = async (acabado_props: ColorOption) => {
+        await updatePrecioPuerta(acabado_props);
         setStateBD(prevState => {
-            const index = prevState.colors.findIndex(item => item.id === color.id);
+            const index = prevState.acabado.findIndex(item => item.id === acabado_props.id);
             if (index === -1) return prevState; // No se encontró el elemento
             return {
                 ...prevState,
-                colors:
+                acabado:
                     [
-                        ...prevState.colors.slice(0, index),
-                        { ...prevState.colors[index], ...color },
-                        ...prevState.colors.slice(index + 1)
+                        ...prevState.acabado.slice(0, index),
+                        { ...prevState.acabado[index], ...acabado_props },
+                        ...prevState.acabado.slice(index + 1)
                     ]
             };
         });
@@ -153,19 +151,25 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
     const updatePrecioColorBDContext = async (precioColor: ColorOption) => {
         await updatePrecioColor(precioColor);
         setStateBD(prevState => {
-            const index = prevState.colors.findIndex(item => item.id === precioColor.id);
+            const index = prevState.acabado.findIndex(item => item.id === precioColor.id);
             if (index === -1) return prevState; // No se encontró el elemento
             return {
                 ...prevState,
-                colors:
+                acabado:
                     [
-                        ...prevState.colors.slice(0, index),
-                        { ...prevState.colors[index], ...precioColor },
-                        ...prevState.colors.slice(index + 1)
+                        ...prevState.acabado.slice(0, index),
+                        { ...prevState.acabado[index], ...precioColor },
+                        ...prevState.acabado.slice(index + 1)
                     ]
             };
         });
     }
+
+    const updatePresupuestoBDContext = async (presu_actualizado: PresupuestosOption, abertura_actualizada: AberturaPresupuestoOption) => {
+        await updateAbertura(abertura_actualizada);
+        await updatePrecioTotalPresupuesto(presu_actualizado);
+        setPresupuestosUltimaAct(new Date()); // Esto disparará la recarga de datos
+    };
 
     const updatePrecioCortinaBDContext = async (cortina: CortinaOption) => {
         await updatePrecioCortina(cortina);
@@ -174,7 +178,7 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
             if (index === -1) return prevState; // No se encontró el elemento
             return {
                 ...prevState,
-                cortina:
+                cortinas:
                     [
                         ...prevState.cortinas.slice(0, index),
                         { ...prevState.cortinas[index], ...cortina },
@@ -212,7 +216,8 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
             updateAccesorioPrecioBDContext,
             dropPresupuestoBDContext,
             updatePrecioCortinaBDContext,
-            updatePrecioPuertaBDContext
+            updatePrecioPuertaBDContext,
+            updatePresupuestoBDContext
 
         }}>
             {children}

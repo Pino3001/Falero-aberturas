@@ -1,126 +1,169 @@
-import React, { useState} from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Button, Card, List, TextInput, Text, Switch, Snackbar } from 'react-native-paper';
+import {  Card, List, TextInput, Text } from 'react-native-paper';
 import ModalSerie from '../components/_modales/ModalSerie';
 import ModalColor from '../components/_modales/ModalColor';
-import ModalPrecioM2 from '../components/_modales/ModalPrecioM2';
 import ModalAccesoriosSerie from '@/components/_modales/ModalAccesoriosSerie';
 import { useBD } from '@/utils/contexts/BDContext';
 import { cortinasEnum, preciosVariosEnum } from '@/utils/constants/variablesGlobales';
 import { CortinaOption, CortinaOptionDefault, PerfilesOption, PreciosVariosOption, PreciosVariosOptionDefault, SerieOption, SerieOptionDefault } from '@/utils/constants/interfases';
 import Colors from '@/utils/constants/Colors';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import ModalEditCortina from '../components/_modales/ModalEditCortina';
 import ModalEditarPuerta from '../components/_modales/ModalEditarPuerta';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { useTheme } from '@/utils/contexts/ThemeContext';
+import ModalEditPrecio from '@/components/_modales/ModalEditPrecio';
 
-interface EditPrecioProps {
-    precio: string;
-    onPrecioChange: (precio: string) => void;
-}
 
-export default function EditPrecio({ }: EditPrecioProps) {
-    const [modal, setModal] = useState<{
-        visible: boolean;
-        tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios' | 'cortina' | 'puerta';
-        dataModalSerie: {
-            serie: SerieOption;
-            perfiles: PerfilesOption[];
-        };
-        dataModalPrecioM2: {
-            vario: PreciosVariosOption
-        };
-        dataModalCortina: {
-            cortina: CortinaOption
-        };
-    }
-    >({
-        visible: false,
-        tipo: undefined,
-        dataModalSerie: {
-            serie: SerieOptionDefault,
-            perfiles: []
-        },
-        dataModalPrecioM2: {
-            vario: PreciosVariosOptionDefault
-        },
-        dataModalCortina: {
-            cortina: CortinaOptionDefault
-        },
-    });
-    const { stateBD } = useBD();
-    const { colors, series, preciosVarios, perfiles, cortinas } = stateBD;
+type modalOption = {
+    visible: boolean;
+    tipo?: 'serie' | 'color' | 'preciosVarios' | 'accesorios' | 'cortina' | 'puerta';
+    dataModalSerie: {
+        serie: SerieOption;
+        perfiles: PerfilesOption[];
+    };
+    dataModalPrecioM2: {
+        vario: PreciosVariosOption;
+    };
+    dataModalCortina: {
+        cortina: CortinaOption;
+    };
+};
+
+const modalDefault: modalOption = {
+    visible: false,
+    tipo: undefined,
+    dataModalSerie: {
+        serie: SerieOptionDefault,
+        perfiles: []
+    },
+    dataModalPrecioM2: {
+        vario: PreciosVariosOptionDefault
+    },
+    dataModalCortina: {
+        cortina: CortinaOptionDefault
+    },
+};
+
+export default function EditPrecio({ }) {
+    const { colors, fonts } = useTheme();
+    const [modal, setModal] = useState<modalOption>(modalDefault);
+    const { stateBD, updatePrecioVariosBDContext, updatePrecioCortinaBDContext } = useBD();
+    const { acabado, series, preciosVarios, perfiles, cortinas } = stateBD;
+
+
+
+
+    const handleSaveVario = async (nuevoPrecio: number) => {
+        const varioToUpdate = modal.dataModalPrecioM2.vario; // Guardamos referencia por si se cierra el modal
+        if (!varioToUpdate) return;
+
+        try {
+            await updatePrecioVariosBDContext({
+                ...varioToUpdate,
+                precio: nuevoPrecio
+            });
+        } finally {
+            setModal(modalDefault);
+        }
+    };
+
+    const handleSaveCortina = async (nuevoPrecio: number) => {
+        const cortinaToUpdate = modal.dataModalCortina.cortina;
+        if (!cortinaToUpdate) return;
+        try {
+            await updatePrecioCortinaBDContext({
+                ...cortinaToUpdate,
+                preciom2: nuevoPrecio
+            });
+        } finally {
+            setModal(modalDefault);
+        }
+    };
 
     return (
         <View style={styles.container}>
             {/* Sección Aluminio */}
-            <Card style={styles.card}>
-                <Card.Title title="Aluminio" titleStyle={styles.title} />
+            <Card style={[styles.card, { backgroundColor: colors.surface }]}>
+                <Card.Title title="Aluminio" titleStyle={{ color: colors.onPrimaryContainer, fontFamily: fonts.bold.fontFamily }} />
                 <Card.Content >
                     <List.Accordion
                         title="Editar Serie"
-                        style={styles.accordion}
-                        titleStyle={styles.accordionTitle}
-                        left={props => <List.Icon {...props} icon="shape" color={Colors.colors.text} />}
+                        style={[styles.accordion, { borderColor: colors.primary, backgroundColor: colors.background }]}
+                        titleStyle={{
+                            color: colors.onPrimaryContainer, fontSize: 16,
+                            fontFamily: fonts.bold.fontFamily
+                        }}
+                        left={props => <List.Icon {...props} icon="shape" color={colors.secondary} />}
                         right={({ isExpanded }) => (
                             <List.Icon
                                 icon={isExpanded ? "chevron-up" : "chevron-down"}
-                                color={Colors.colors.text}
+                                color={colors.primary}
                             />
                         )}
                         theme={{
                             colors: {
-                                background: 'transparent',
-                            }
+                                background: "transparent", // Cambia el fondo del menú desplegable
+                            },
                         }}
                     >
-                        {series.map((serie) => (
-                            <List.Item
-                                key={serie.id}
-                                title={serie.nombre ?? '-1'}
-                                onPress={() => {
-                                    setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'serie', dataModalSerie: { serie, perfiles: perfiles.filter(p => p.serie_id === serie.id) } }));
-                                }}
-                                style={styles.item}
-                                titleStyle={styles.itemTitle}
-                            />
-                        ))}
+
+                        <View style={{ borderWidth: 1, backgroundColor: colors.background, borderColor: colors.onPrimaryContainer }}>
+                            {series.map((serie) => (
+                                <List.Item
+                                    key={serie.id}
+                                    title={serie.nombre ?? '-1'}
+                                    onPress={() => {
+                                        setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'serie', dataModalSerie: { serie, perfiles: perfiles.filter(p => p.serie_id === serie.id) } }));
+                                    }}
+                                    style={{ backgroundColor: colors.background, width: '100%' }}
+                                    titleStyle={{
+                                        color: colors.onPrimaryContainer,
+                                        fontSize: 16,
+                                        fontFamily: fonts.bold.fontFamily,
+                                    }}
+                                />
+                            ))}
+                        </View>
+
                     </List.Accordion>
                     <TouchableOpacity
-                        style={[styles.accordion, styles.buttonColores]}
+                        style={[styles.accordion, styles.buttonColores, { borderColor: colors.primary, backgroundColor: colors.background }]}
 
                         onPress={() => {
                             setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'color' }));
                         }}
-                    ><List.Icon icon="palette" color={Colors.colors.text} style={{ marginLeft: 18 }} />
-                        <Text style={{ fontSize: 16, color: Colors.colors.text }}>Acabado</Text>
+                    ><List.Icon icon="palette" color={colors.secondary} style={{ marginLeft: 16 }} />
+                        <Text style={{ fontSize: 16, color: colors.onPrimaryContainer, fontFamily: fonts.bold.fontFamily, marginLeft: 6 }}>Acabado</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.accordion, styles.buttonColores]}
-
+                        style={[styles.accordion, styles.buttonColores, { borderColor: colors.primary, backgroundColor: colors.background }]}
                         onPress={() => {
                             setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'puerta' }));
                         }}
-                    ><FontAwesome6 name="door-open" size={22} color={Colors.colors.text} style={{ marginLeft: 18 }} />
-                        <Text style={{ fontSize: 16, color: Colors.colors.text }}>Puertas</Text>
+                    ><FontAwesome6 name="door-open" size={22} color={colors.secondary} style={{ marginLeft: 16 }} />
+                        <Text style={{ fontSize: 16, color: colors.onPrimaryContainer, fontFamily: fonts.bold.fontFamily, marginLeft: 6 }}>Puertas</Text>
                     </TouchableOpacity>
 
                 </Card.Content>
             </Card>
 
             {/* Sección Accesorios */}
-            <Card style={styles.card}>
-                <Card.Title title="Varios" titleStyle={styles.title} />
+            <Card style={[styles.card, { backgroundColor: colors.surface }]}>
+                <Card.Title title="Varios" titleStyle={{ color: colors.onPrimaryContainer, fontFamily: fonts.bold.fontFamily }} />
                 <Card.Content>
                     <List.Accordion
                         title="Cortinas"
-                        style={styles.accordion}
-                        titleStyle={styles.accordionTitle}
-                        left={props => <MaterialCommunityIcons {...props} name="curtains" size={24} color={Colors.colors.text} />}
+                        style={[styles.accordion, { borderColor: colors.primary, backgroundColor: colors.background }]}
+                        titleStyle={{
+                            color: colors.onPrimaryContainer, fontSize: 16,
+                            fontFamily: fonts.bold.fontFamily
+                        }}
+                        left={props => <MaterialCommunityIcons {...props} name="curtains" size={24} color={colors.secondary} />}
                         right={({ isExpanded }) => (
                             <List.Icon
                                 icon={isExpanded ? "chevron-up" : "chevron-down"}
-                                color={Colors.colors.text}
+                                color={colors.primary}
                             />
                         )}
                         theme={{
@@ -129,32 +172,38 @@ export default function EditPrecio({ }: EditPrecioProps) {
                             }
                         }}
                     >
-                        {cortinas.map((cortina) => (
-                            cortina.tipo != cortinasEnum.ninguna ?
-                                <List.Item
-                                    key={cortina.id}
-                                    title={cortina.tipo ?? 'Error'}
-                                    onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'cortina', dataModalCortina: { cortina } }))}
-                                    style={styles.item}
-                                    titleStyle={{
-                                        color: Colors.colors.text,
-                                        fontSize: 16,
-                                        marginLeft: -30,
-                                        fontWeight: 'bold',
-                                    }}
-                                />
-                                : null
-                        ))}
+                        <View style={{ borderWidth: 1, backgroundColor: colors.background, borderColor: colors.primary }}>
+                            {cortinas.map((cortina) => (
+                                cortina.tipo != cortinasEnum.ninguna ?
+                                    <List.Item
+                                        key={cortina.id}
+                                        title={cortina.tipo ?? 'Error'}
+                                        onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'cortina', dataModalCortina: { cortina } }))}
+                                        style={{ backgroundColor: colors.background, width: '100%' }}
+                                        titleStyle={{
+                                            color: colors.onPrimaryContainer,
+                                            fontSize: 16,
+                                            fontFamily: fonts.bold.fontFamily,
+                                        }}
+                                    />
+                                    : null
+                            ))}
+                        </View>
+
                     </List.Accordion>
                     <List.Accordion
-                        title="Edita Precios Varios"
-                        style={styles.accordion}
-                        titleStyle={styles.accordionTitle}
-                        left={props => <List.Icon {...props} icon="tools" color={Colors.colors.text} />}
+                        title="Precios Varios"
+                        style={[styles.accordion, { borderColor: colors.primary, backgroundColor: colors.background }]}
+                        titleStyle={{
+                            color: colors.onPrimaryContainer,
+                            fontSize: 16,
+                            fontFamily: fonts.bold.fontFamily
+                        }}
+                        left={props => <List.Icon {...props} icon="tools" color={colors.secondary} />}
                         right={({ isExpanded }) => (
                             <List.Icon
                                 icon={isExpanded ? "chevron-up" : "chevron-down"}
-                                color={Colors.colors.text}
+                                color={colors.primary}
                             />
                         )}
                         theme={{
@@ -163,22 +212,33 @@ export default function EditPrecio({ }: EditPrecioProps) {
                             }
                         }}
                     >
-                        {preciosVarios.map((vario) => (
+                        <View style={{ borderWidth: 1, backgroundColor: colors.background, borderColor: colors.primary }}>
+                            {preciosVarios.map((vario) => (
+                                <List.Item
+                                    key={vario.id}
+                                    title={vario.nombre ?? 'Error'}
+                                    onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'preciosVarios', dataModalPrecioM2: { vario } }))}
+                                    style={{ backgroundColor: colors.background, width: '100%' }}
+                                    titleStyle={{
+                                        color: colors.onPrimaryContainer,
+                                        fontSize: 16,
+                                        fontFamily: fonts.bold.fontFamily,
+                                    }}
+                                />
+                            ))}
                             <List.Item
-                                key={vario.id}
-                                title={vario.nombre ?? 'Error'}
-                                onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'preciosVarios', dataModalPrecioM2: { vario } }))}
-                                style={styles.item}
-                                titleStyle={styles.itemTitle}
+                                key="accesorios"
+                                title="Accesorios"
+                                onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'accesorios' }))}
+                                style={{ backgroundColor: colors.background, width: '100%' }}
+                                titleStyle={{
+                                    color: colors.onPrimaryContainer,
+                                    fontSize: 16,
+                                    fontFamily: fonts.bold.fontFamily,
+                                }}
                             />
-                        ))}
-                        <List.Item
-                            key="accesorios"
-                            title="Accesorios"
-                            onPress={() => setModal((prevModal) => ({ ...prevModal, visible: true, tipo: 'accesorios' }))}
-                            style={styles.item}
-                            titleStyle={styles.itemTitle}
-                        />
+                        </View>
+
                     </List.Accordion>
                 </Card.Content>
             </Card>
@@ -186,41 +246,61 @@ export default function EditPrecio({ }: EditPrecioProps) {
                 modal && modal.visible && (<>
                     <ModalSerie
                         visible={modal.tipo === 'serie'}
-                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        onDimiss={() => setModal(modalDefault)}
                         {...modal.dataModalSerie}
                     />
                     <ModalColor
                         visible={modal.tipo === 'color'}
-                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        colors={colors}
+                        onDimiss={() => setModal(modalDefault)}
+                        acabado={acabado}
                     />
-
-                    <ModalPrecioM2
-                        visible={modal.tipo === 'preciosVarios'}
-                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        {...modal.dataModalPrecioM2}
-                    />
-
+                    {modal.tipo === 'preciosVarios' && (
+                        modal.dataModalPrecioM2?.vario?.nombre === preciosVariosEnum.manoDeObra ? (
+                            <ModalEditPrecio
+                                visible={true}
+                                onDismiss={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                                title={modal.dataModalPrecioM2.vario?.nombre || 'No hay nombre'}
+                                inputLabel='Porcentaje ganancia'
+                                affix='%'
+                                initialValue={modal.dataModalPrecioM2.vario?.precio || 0}
+                                onSave={handleSaveVario}
+                            />
+                        ) : (
+                            <ModalEditPrecio
+                                visible={true}
+                                onDismiss={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                                title={modal.dataModalPrecioM2.vario?.nombre || 'No hay nombre'}
+                                inputLabel='Precio por M²'
+                                affix='US$'
+                                initialValue={modal.dataModalPrecioM2.vario?.precio || 0}
+                                onSave={handleSaveVario}
+                            />
+                        )
+                    )}
                     <ModalAccesoriosSerie
                         visible={modal.tipo === 'accesorios'}
-                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        onDimiss={() => setModal(modalDefault)}
                         series={stateBD.series}
                     />
 
-                    <ModalEditCortina
+                    <ModalEditPrecio
                         visible={modal.tipo === 'cortina'}
-                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        {...modal.dataModalCortina}
+                        onDismiss={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
+                        title={modal.dataModalCortina.cortina?.tipo || 'No hay cortina'}
+                        inputLabel='Precio por M²'
+                        affix='US$'
+                        initialValue={modal.dataModalCortina.cortina?.preciom2 || 0}
+                        onSave={handleSaveCortina}
                     />
                     <ModalEditarPuerta
                         visible={modal.tipo === 'puerta'}
-                        hideModal={() => setModal((prevModal) => ({ ...prevModal, visible: false }))}
-                        colors={colors}
+                        onDimiss={() => setModal(modalDefault)}
+                        acabado={acabado}
                     />
                 </>
                 )
             }
-        </View>
+        </View >
     );
 }
 
@@ -237,31 +317,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         elevation: 2,
         width: '98%',
-        backgroundColor: Colors.colors.background_modal,
-    },
-    title: {
-        color: Colors.colors.text,
     },
     accordion: {
-        backgroundColor: Colors.colors.imput_black,
-        borderColor: Colors.colors.complementario,
-        borderWidth: 1,
+        borderWidth: 2,
         marginVertical: 4,
         borderRadius: 8,
-    },
-    accordionTitle: {
-        color: Colors.colors.text,
-        fontSize: 16,
-    },
-    item: {
-        backgroundColor: Colors.colors.imput_black,
-        borderColor: Colors.colors.border_contraste_black,
-        borderWidth: 1
-    },
-    itemTitle: {
-        color: Colors.colors.text,
-        fontSize: 18,
-        fontWeight: 'bold',
     },
     contentContainer: {
         width: '100%',
@@ -299,9 +359,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    editButtonActive: {
-        backgroundColor: Colors.colors.verde,
     },
     buttonColores: {
         height: 60,

@@ -1,9 +1,9 @@
 import { BDState } from '@/utils/contexts/BDContext';
 import * as SQLite from 'expo-sqlite';
-import { Tablas, DATABASE_NAME, DATABASE_VERSION } from './constants/variablesGlobales';
-import {  ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from './constants/interfases';
+import { Tablas, DATABASE_NAME, DATABASE_VERSION } from '../constants/variablesGlobales';
+import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from '../constants/interfases';
 import { getColorAluminio, getCortinas, getPerfiles, getPreciosVarios, getSeries } from './operacionesDB';
-import { colorData, cortinaData, perfilesData, preciosVariosData, serieData } from './valores_preCargados';
+import { colorData, cortinaData, perfilesData, preciosVariosData, serieData } from '../valores_preCargados';
 import * as FileSystem from 'expo-file-system';
 import { Alert, Platform } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -29,7 +29,7 @@ export async function initializeDatabase(): Promise<BDState> {
 
     // 5. Devolver estado inicial
     return {
-      colors: await getColorAluminio(),
+      acabado: await getColorAluminio(),
       cortinas: await getCortinas(),
       perfiles: await getPerfiles(),
       preciosVarios: await getPreciosVarios(),

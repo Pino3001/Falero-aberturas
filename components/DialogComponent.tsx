@@ -1,7 +1,6 @@
-import Colors from "../utils/constants/Colors";
 import React, { useState } from "react";
-import { Dialog, Button, Text } from "react-native-paper";
- // Adjust the import path as needed
+import { Dialog, Button, Text, PaperProvider } from "react-native-paper";
+// Adjust the import path as needed
 
 
 type DialogComponentProps = {
@@ -15,14 +14,14 @@ const DialogComponent: React.FC<DialogComponentProps> = ({ Title, Content_text, 
     const [showDialog, setShowDialog] = useState(true);
 
     return (
-        <Dialog visible={showDialog} onDismiss={() => { setShowDialog(false); onCancel(); }} style={{backgroundColor: Colors.colors.background_modal}}>
-            <Dialog.Title style={{ color: Colors.colors.text }}>{Title}</Dialog.Title>
+        <Dialog visible={showDialog} onDismiss={() => { setShowDialog(false); onCancel(); }} style={{position: 'absolute'}} >
+            <Dialog.Title >{Title}</Dialog.Title>
             <Dialog.Content>
-                <Text style={{ color: Colors.colors.text }}>{Content_text}</Text>
+                <Text >{Content_text}</Text>
             </Dialog.Content>
             <Dialog.Actions>
-                <Button textColor={Colors.colors.complementario} onPress={() => { setShowDialog(false); onCancel(); }}>Cancelar</Button>
-                <Button textColor={Colors.colors.complementario} onPress={() => { setShowDialog(false); onConfirm(); }}>Confirmar</Button>
+                <Button onPress={() => { setShowDialog(false); onCancel(); }}>Cancelar</Button>
+                <Button onPress={() => { setShowDialog(false); onConfirm(); }}>Confirmar</Button>
             </Dialog.Actions>
         </Dialog>
     );
@@ -30,6 +29,3 @@ const DialogComponent: React.FC<DialogComponentProps> = ({ Title, Content_text, 
 
 export default DialogComponent;
 
-function setShowDialog(arg0: boolean) {
-    throw new Error("Function not implemented.");
-}

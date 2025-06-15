@@ -8,6 +8,16 @@
     "scheme": "carpintelab",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+        "fonts": [
+      {
+        "asset": "./assets/fonts/RobotoSlab-Regular.ttf",
+        "fontFamily": "RobotoSlab-Regular"
+      },
+      {
+        "asset": "./assets/fonts/RobotoSlab-Bold.ttf",
+        "fontFamily": "RobotoSlab-Bold"
+      }
+    ],
     "assetBundlePatterns": [
       "assets/images/*",
       "assets/fonts/*",

@@ -2,8 +2,10 @@ import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-nati
 import EditPrecio from '@/app/EditPrecio';
 import { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useTheme } from '@/utils/contexts/ThemeContext';
 
 export default function TabEditarPrecioScreen() {
+  const {colors} = useTheme();
   const [precio, setPrecio] = useState('');
 
   return (
@@ -14,7 +16,7 @@ export default function TabEditarPrecioScreen() {
       extraHeight={10}
       enableResetScrollToCoords={false}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={styles.containerKASV}
+      contentContainerStyle={[styles.containerKASV, {backgroundColor: colors.background}]}
       scrollEnabled={true}
     >
       <TouchableWithoutFeedback
@@ -36,7 +38,6 @@ export default function TabEditarPrecioScreen() {
 const styles = StyleSheet.create({
   containerKASV: {
     flexGrow: 1,
-    backgroundColor: '#000',
     alignItems: 'center',
     paddingHorizontal: 6,
   },

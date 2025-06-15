@@ -1,5 +1,5 @@
-import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, SerieOptionDefault } from "./constants/interfases";
-import { cortinasEnum, DATABASE_NAME, PerfilesEnum, preciosVariosEnum, Tablas } from "./constants/variablesGlobales";
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption, SerieOptionDefault } from "../constants/interfases";
+import { cortinasEnum, DATABASE_NAME, PerfilesEnum, preciosVariosEnum, Tablas } from "../constants/variablesGlobales";
 import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabaseSync(DATABASE_NAME);
@@ -130,6 +130,7 @@ export async function getPresupuestoByID(id: number): Promise<PresupuestosOption
     serie_id_hereda: number | null;
 } */
 export const updateAccesorioPrecio = async (obj: SerieOption) => {
+    console.log("Ejecutando UPDATE en BD con:", obj);
     await db.runAsync(`
             UPDATE ${Tablas.series} 
             SET precio_accesorios = ? 
@@ -144,17 +145,18 @@ export const updateAccesorioPrecio = async (obj: SerieOption) => {
     serie_id: number;
 } */
 export const updatePerfilGramos = async (obj: PerfilesOption) => {
+    console.log('entro o no')
     await db.runAsync(`
             UPDATE ${Tablas.perfiles} 
             SET gramos_por_m = ? 
-            WHERE AND id = ?;
+            WHERE id = ?;
         `, [obj.gramos_por_m, obj.id]);
 };
 
 export const updatePrecioColor = async (obj: ColorOption) => {
     await db.runAsync(`
             UPDATE ${Tablas.coloresAluminio} 
-            SET precioKilo = ? 
+            SET precio = ? 
             WHERE id = ?;
         `, [obj.precio, obj.id]);
 };
@@ -188,6 +190,68 @@ export const updatePrecioCortina = async (objeto: CortinaOption) => {
             WHERE id = ?;
         `, [objeto.preciom2, objeto.id]);
     }
+};
+
+/* export interface AberturaPresupuestoOption {
+    id: number;
+    ancho: number;
+    tipo_abertura: AberturasEnum;
+    alto: number;
+    id_color_aluminio: number;
+    id_serie: number;
+    id_cortina?: number;
+    vidrio: boolean;
+    mosquitero: boolean;
+    cantidad: number;
+    precio_unitario: number;
+} */
+
+export const updateAbertura = async (objeto: AberturaPresupuestoOption) => {
+    await db.runAsync(`
+            UPDATE ${Tablas.aberturaPresupuesto} 
+            SET 
+                tipo_abertura = ?,
+                ancho = ?,
+                alto = ?,
+                id_color_aluminio = ?,
+                id_serie = ?,
+                id_cortina = ?,
+                mosquitero = ?,
+                vidrio = ?,
+                cantidad = ?,
+                precio_unitario = ?
+            WHERE id = ?;
+        `, [
+        objeto.tipo_abertura,
+        objeto.ancho,
+        objeto.alto,
+        objeto.id_color_aluminio,
+        objeto.id_serie,
+        objeto.id_cortina || null,
+        objeto.mosquitero ? 1 : 0,
+        objeto.vidrio ? 1 : 0,
+        objeto.cantidad,
+        objeto.precio_unitario,
+        objeto.id
+    ]);
+};
+
+export const updatePrecioTotalPresupuesto = async (objeto: PresupuestosOption) => {
+    await db.runAsync(`
+            UPDATE ${Tablas.presupuestos} 
+            SET precio_total = ? 
+            WHERE id = ?;
+        `, [objeto.precio_total, objeto.id]);
+};
+
+export const buscarPresupuestosNombre = async (searchText: string): Promise<PresupuestosOption[]> => {
+    const resultados = await db.getAllAsync<PresupuestosOption>(
+        `SELECT * FROM ${Tablas.presupuestos} 
+         WHERE nombre_cliente LIKE ? 
+         ORDER BY fecha DESC`,
+        [`%${searchText}%`]
+    );
+    return resultados.map((x: PresupuestosOption) => ({ ...x, fecha: new Date(x.fecha) }));
 };
 
 async function calcularPrecioVidrio(

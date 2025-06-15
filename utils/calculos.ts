@@ -1,6 +1,6 @@
 import { coloresEnum, cortinasAbrevEnum, cortinasEnum, PerfilesEnum, seriesEnum } from "./constants/variablesGlobales";
-import { CortinaOption, PerfilesOption, PerfilesSeries, PresupuestosOption, SerieOption } from "./constants/interfases";
-import { calcularPrecioVentana, determinarPerfiles } from "./operacionesDB";
+import { ColorOption, CortinaOption, PerfilesOption, PerfilesSeries, PresupuestosOption, SerieOption } from "./constants/interfases";
+import { calcularPrecioVentana, determinarPerfiles } from "./_db/operacionesDB";
 
 
 interface aComprarProps {
@@ -242,7 +242,7 @@ export const abreviarCortina = (cortina_id: number, cortinas: CortinaOption[]): 
 
 export const compararAberturaColores = async (
   presupuesto_comparar: PresupuestosOption,
-  colores_comparar: CortinaOption[]
+  colores_comparar: ColorOption[]
 ): Promise<PresupuestosOption[]> => {
 
   let lista: PresupuestosOption[] = [];

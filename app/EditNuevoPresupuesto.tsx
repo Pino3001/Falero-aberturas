@@ -1,16 +1,17 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Image, View, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Image, View, TouchableOpacity, FlatList } from 'react-native';
 import { TextInput, List, Text, Divider, FAB, Dialog, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AgregarAbertura, { AgregarAberturaRef } from '@/components/_modales/AgregarAbertura';
 import { useBD } from '../utils/contexts/BDContext';
 import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, PresupuestosOptionDefault, SerieOption } from '@/utils/constants/interfases';
-import Colors from '@/utils/constants/Colors';
 import ModalMostrarPresupuesto from '@/components/_modales/ModalMostrarPresupuesto';
 import DialogComponent from '@/components/DialogComponent';
+import Colors from '@/utils/constants/Colors';
 const ventanaIcon = require('../assets/images/ventana.png');
 const ventana3HojasIcon = require('../assets/images/ventana con 3 hojas.png');
 const ventanaCortinaIcon = require('../assets/images/ventana con cortina.png');
+import { useTheme } from '../utils/contexts/ThemeContext';
 
 export type Ventana = {
   id_abertura_presupuesto?: number;
@@ -27,9 +28,8 @@ export type Ventana = {
   precioTotal: number;
 };
 
-
 export default function EditNuevoPresupuesto({ path }: { path: string }) {
-
+  const { fonts, colors, currentTheme } = useTheme();
   const [presupuesto, SetPresupuesto] = useState<PresupuestosOption>(PresupuestosOptionDefault);
   const [mostrarAbertura, setMostrarAbertura] = useState(false);
   const [agregarCerrado, setAgregarCerrado] = useState(false);
@@ -47,6 +47,8 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
     mostrar: false,
     nuevoPresu: PresupuestosOptionDefault
   });
+  const { insertarPresupuestoConItemsBDContext } = useBD();
+
 
   const handleNombreChange = (texto: string) => {
     if (errorNombre) setErrorNombre('');
@@ -63,7 +65,12 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
   };
 
   const [aberturaEditar, setAberturaEditar] = useState<AberturaPresupuestoOption | undefined>(undefined);
+
   const handleComfirmarCreacion = (ventana: AberturaPresupuestoOption) => {
+    if (!ventana) {
+      console.error("Ventana es undefined");
+      return;
+    }
     contador.current -= 1;
     // id negativo significa que no esta en bd
     SetPresupuesto((prevPresupuesto) => ({ ...prevPresupuesto, ventanas: [...prevPresupuesto.ventanas, { ...ventana, id: contador.current }] }));
@@ -86,10 +93,12 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
     });
     setAberturaEditar(undefined);
   }
+
   const handleClose = () => {
     setMostrarAbertura(false);
     setAberturaEditar(undefined);
   }
+
   const handleGuardar = () => {
     if (validateField()) {
       setShowDialog(true);
@@ -98,8 +107,6 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
       setAlert(true);
     }
   }
-  const { insertarPresupuestoConItemsBDContext } = useBD();
-
 
   const confirmGuardar = async () => {
     try {
@@ -133,69 +140,78 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
 
   };
 
+  const getUltimoColorUsado = () => {
+    if (!presupuesto?.ventanas?.length) return undefined;
+    return presupuesto.ventanas[presupuesto.ventanas.length - 1].id_color_aluminio;
+  };
   const dropdownRef = useRef<AgregarAberturaRef>(null);
 
   return (
     <View style={styles.getStartedContainer}>
 
-      <TextInput // Imput nombre de usuario del presupuesto (OBLIFATORIO)
-        mode="outlined"
-        label=""
-        placeholderTextColor={Colors.colors.text}
-        textColor={Colors.colors.text}
-        cursorColor={Colors.colors.complementario}
-        placeholder="Nombre Cliente"
-        left={<TextInput.Icon icon="account" color={Colors.colors.text} />}
-        style={styles.input}
-        theme={{
-          colors: {
-            primary: errorNombre ? Colors.colors.error : Colors.colors.complementarioText,
-            onSurfaceVariant: Colors.colors.text,
-            error: Colors.colors.error,
-          },
-        }}
-        value={presupuesto.nombre_cliente}
-        onChangeText={handleNombreChange}
-        error={!!errorNombre}
-      />
+      <View>
+        <TextInput // Imput nombre de usuario del presupuesto (OBLIFATORIO)
+          mode="outlined"
+          label=""
+          placeholder="Nombre Cliente"
+          left={<TextInput.Icon icon="account" />}
+          style={styles.input}
+          value={presupuesto.nombre_cliente}
+          onChangeText={handleNombreChange}
+          error={!!errorNombre}
+        />
+        <Divider style={{ marginHorizontal: 10, marginTop: 5, marginBottom: 5 }} />
+        <Text variant='titleMedium' style={{ textAlign: 'center', color: colors.onPrimaryContainer }}>Listado de Aberturas</Text>
+      </View>
 
-      <Divider style={{ marginHorizontal: 10, backgroundColor: Colors.colors.text }} />
-      <Text style={{ fontSize: 14, textAlign: 'center', color: Colors.colors.text }}>Listado de Aberturas</Text>
-      {presupuesto.ventanas.length > 0 ? (
-        presupuesto.ventanas.map((ventana) => (
-          <List.Item
-            key={ventana.id}
-            title={`${ventana.cantidad} ${ventana.tipo_abertura}${Number(ventana.cantidad) > 1 ? 's' : ''} - ${ventana.ancho}cm X ${ventana.ancho}cm`}
-            style={styles.listItem}
-            titleStyle={styles.listItemTitle}
-            left={() => (
-              <View style={styles.leftIconContainer}>
-                <Image
-                  source={
-                    ventana.id_serie === 3
-                      ? ventana3HojasIcon
-                      : ventana.id !== undefined && ventana.id_cortina !== undefined
-                        ? ventanaCortinaIcon
-                        : ventanaIcon
-                  }
-                  style={styles.ventanaIcon}
-                />
+      <View style={{ flex: 1 }}>
+        <FlatList
+          data={presupuesto.ventanas}
+          keyExtractor={(item) => item.id.toString()}
+          style={{ flex: 1 }}
+          ListEmptyComponent={<Text variant='titleSmall'  style={{ marginLeft: 20, color: colors.primary }}>No hay presupuestos</Text>}
+          initialNumToRender={10}
+          maxToRenderPerBatch={5}
+          windowSize={10}
+          scrollEnabled={true}
+          removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
+          renderItem={({ item }) => (
+            <View style={{
+              flexDirection: 'row', width: '100%',
+              paddingHorizontal: 10, justifyContent: 'space-between',
+              alignItems: 'center', alignSelf: 'center', height: 40
+            }}>
+              <Image
+                source={
+                  item.id_serie === 3
+                    ? ventana3HojasIcon
+                    : item.id !== undefined && item.id_cortina !== undefined
+                      ? ventanaCortinaIcon
+                      : ventanaIcon
+                }
+                style={{
+                  tintColor: colors.tertiary,
+                  width: 24,
+                  height: 24,
+                }}
+              />
+              <View>
+                <Text variant='labelSmall' style={{ textAlign: 'left' }}>{`${item.cantidad || 0} ${item.tipo_abertura || ''}${Number(item.cantidad || 0) > 1 ? 's' : ''} - ${item.ancho || 0}cm X ${item.alto || 0}cm`}</Text>
               </View>
-            )}
-            right={props => (
               <View style={styles.rightIconContainer}>
                 <TouchableOpacity
                   onPress={() => {
                     console.log("editar pressed");
-                    setAberturaEditar(ventana)
+                    setAberturaEditar(item);
                   }}
                   style={styles.actionButton}
                   disabled={(mostrarAbertura && aberturaEditar != null) || aberturaEditar !== undefined}
                 >
                   <MaterialCommunityIcons
                     name="pencil"
-                    size={20}
-                    color={Colors.colors.text}
+                    size={22}
+                    color={colors.primary}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -203,7 +219,7 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
                     setShowDialog(true);
                     setShowEliminar({
                       mostrar: true,
-                      id: ventana.id
+                      id: item.id
                     });
                   }}
                   style={styles.actionButton}
@@ -211,89 +227,90 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
                 >
                   <MaterialCommunityIcons
                     name="delete"
-                    size={20}
-                    color={Colors.colors.complementario}
+                    size={22}
+                    color={colors.error}
                   />
                 </TouchableOpacity>
               </View>
-            )}
-          />
-        )))
-        : (
-          <Text style={{ textAlign: 'center', color: Colors.colors.text, fontSize: 16 }}>Lista de aberturas vacia!!!</Text>
-        )}
-      <Divider style={{ margin: 10, backgroundColor: Colors.colors.text }} />
-      {presupuesto.ventanas.length > 0 ? (
-        <Text style={styles.mensajeTexto}>
-          {`Precio total:  `}
-          <Text style={[styles.mensajeTexto, { color: Colors.colors.complementarioText }]}>{presupuesto.ventanas.reduce((total, item) => total + item.precio_unitario, 0).toFixed(1)} US$</Text>
-        </Text>
-      ) : null}
-      {presupuesto.ventanas.length > 0 ? (
-        <View style={{ flexDirection: 'row', gap: 10, alignContent: 'center', justifyContent: 'center', marginTop: 10 }}>
-          <Button style={{
-            backgroundColor: Colors.colors.active_color,
-            borderRadius: 6,
-            borderColor: Colors.colors.text,
-            borderWidth: 1.5,
-            height: 40,
-            width: '40%',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-            disabled={(mostrarAbertura) || aberturaEditar !== undefined}
-            onPress={() => handleGuardar()}
-          > <Text style={{ fontSize: 16, fontWeight: 'bold', color: Colors.colors.text }}>Guardar</Text>
-          </Button>
-          <View></View>
-          <Button
-            style={{
-              backgroundColor: Colors.colors.inactive_color,
-              borderColor: Colors.colors.text,
-              borderWidth: 1.5,
+
+            </View>
+          )}
+        />
+      </View>
+
+      <View>
+        <Divider style={{ marginBottom: 10, marginHorizontal: 5, marginTop: 0 }} />
+
+        {presupuesto.ventanas.length > 0 ? (
+          <Text variant='bodyLarge' style={styles.mensajeTexto}>
+            {`Precio total:  `}
+            <Text variant='bodyLarge' style={[styles.mensajeTexto, { color: colors.error }]}>{presupuesto.ventanas.reduce((total, item) => total + item.precio_unitario, 0).toFixed(1)} US$</Text>
+          </Text>
+        ) : null}
+
+        {presupuesto.ventanas.length > 0 ? (
+          <View style={{ flexDirection: 'row', gap: 10, alignContent: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 80 }}>
+            <Button style={{
               borderRadius: 6,
+              backgroundColor: colors.primary,
               height: 40,
               width: '40%',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
             }}
-            disabled={(mostrarAbertura) || aberturaEditar !== undefined}
-            onPress={() => {
-              setShowDialog(true);
-              setShowLimpiar(true);
-            }}
-          > <Text style={{ fontSize: 16, fontWeight: 'bold', color: Colors.colors.text }}>Limpiar</Text>
-          </Button>
-        </View>
-      ) : null
-      }
-      {
-        (!mostrarAbertura || agregarCerrado) &&
-        <FAB
-          icon="plus"
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'absolute',
-            width: 60,
-            height: 60,
-            margin: 16,
-            right: 0,
-            bottom: 0,
-            backgroundColor: Colors.colors.complementario
-          }}
-          color={Colors.colors.text}
-          onPress={() => {
-            if (agregarCerrado && dropdownRef.current) {
-              dropdownRef.current.open();
-              setAgregarCerrado(false);
-            }
-            else {
-              setMostrarAbertura(true);
-            }
-          }}
-        />
-      }
+              textColor={colors.onPrimary}
+              disabled={(mostrarAbertura) || aberturaEditar !== undefined}
+              onPress={() => handleGuardar()}
+            >Guardar
+            </Button>
+            <View></View>
+            <Button
+              style={{
+                backgroundColor: colors.surfaceVariant,
+                borderRadius: 6,
+                height: 40,
+                width: '40%',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+
+              disabled={(mostrarAbertura) || aberturaEditar !== undefined}
+              onPress={() => {
+                setShowDialog(true);
+                setShowLimpiar(true);
+              }}
+            >Limpiar
+            </Button>
+          </View>
+        ) : null
+        }
+      </View>
+
+      <FAB
+        icon="plus"
+        color={colors.onSecondary}
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'absolute',
+          backgroundColor: colors.secondary,
+          width: 60,
+          height: 60,
+          margin: 16,
+          right: 0,
+          bottom: 0,
+        }}
+        onPress={() => {
+          if (agregarCerrado && dropdownRef.current) {
+            dropdownRef.current.open();
+            setAgregarCerrado(false);
+          }
+          else {
+            setMostrarAbertura(true);
+          }
+        }}
+      />
+
       {
         mostrarAbertura ? (
           <AgregarAbertura
@@ -302,10 +319,11 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
             handleClose={handleClose}
             visible={mostrarAbertura}
             hideModal={() => setAgregarCerrado(true)}
-            id_col_anterior={presupuesto?.ventanas?.length ? presupuesto.ventanas[presupuesto.ventanas.length - 1].id_color_aluminio : undefined}
+            id_col_anterior={getUltimoColorUsado()}
           />
         ) : null
       }
+
       {
         aberturaEditar ? (
           <AgregarAbertura
@@ -327,7 +345,7 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
         })}
         animationType="none"
         transparent={true}
-        presupuesto={mostrarPresupuesto.nuevoPresu}
+        initialPresupuesto={mostrarPresupuesto.nuevoPresu}
       />
 
       {
@@ -363,7 +381,7 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
 
       {
         showDialog && showEliminar.mostrar ? (() => {
-          const aberturaSelec = presupuesto.ventanas.find(v => v.id === showEliminar.id);
+          const aberturaSelec = presupuesto?.ventanas?.find(v => v?.id === showEliminar?.id);
           return (
             <DialogComponent
               Title='Eliminar Abertura'
@@ -389,9 +407,9 @@ export default function EditNuevoPresupuesto({ path }: { path: string }) {
       }
       {
         alert ? (
-          <Dialog visible={alert} onDismiss={() => setAlert(false)} style={{backgroundColor: Colors.colors.background_modal}}>
-            <Dialog.Icon icon="alert" color={Colors.colors.complementario} />
-            <Dialog.Title style={{ textAlign: 'center', fontSize: 16, color: Colors.colors.text }}>Debes insertar un nombre de Cliente</Dialog.Title>
+          <Dialog visible={alert} onDismiss={() => setAlert(false)} >
+            <Dialog.Icon icon="alert" color={colors.error} />
+            <Dialog.Title style={{ textAlign: 'center', fontSize: 16 }}>Debes insertar un nombre de Cliente</Dialog.Title>
           </Dialog>
         ) : null
       }
@@ -403,88 +421,35 @@ const styles = StyleSheet.create({
   getStartedContainer: {
     flexDirection: 'column',
     gap: 15,
-    height: '100%',
-  },
-  containerAberturas: {
-    flexDirection: 'row',
-    gap: 15,
+    flex: 1,
+    minHeight: '100%',
   },
   input: {
-    backgroundColor: Colors.colors.imput_black,
     width: '90%',
     height: 40,
+    marginTop: 40,
     alignSelf: 'center', // Centrar horizontalmente
-  },
-  button: {
-    backgroundColor: Colors.colors.active_color, // Color morado de Material Design
-    borderRadius: 6,
-    width: '90%',
-    alignSelf: 'center',
-  },
-  buttonGuardar: {
-    backgroundColor: Colors.colors.active_color,
-    borderRadius: 6,
-    padding: 10,
-    alignSelf: 'center',
   },
   label: {
     fontSize: 16,
     color: Colors.colors.text,
   },
-  miTexto: {
-    fontSize: 16,
-    color: Colors.colors.text,
-  },
-
   mensajeTexto: {
-    color: Colors.colors.text,
     textAlign: 'center',
-    fontSize: 18,
-  },
-  listItem: {
-    height: 45
-  },
-  listaContainer: {
-    backgroundColor: 'transparent',
-    width: '100%',
-    justifyContent: 'space-between'
-  },
-  listItemTitle: {
-    fontSize: 13,
-    color: Colors.colors.text,
-  },
-  iconContainer: {
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   leftIconContainer: {
-    backgroundColor: 'transparent',
     justifyContent: 'center',
-    paddingLeft: 30,
+    paddingLeft: 15,
     alignItems: 'center'
-  },
-  ventanaIcon: {
-    backgroundColor: 'transparent',
-    width: 20,
-    height: 20,
-    tintColor: Colors.colors.text
   },
   rightIconContainer: {
     flexDirection: 'row',
+    marginHorizontal: 0,
+    paddingHorizontal: 0,
+    right: -5,
     gap: 10,
   },
   actionButton: {
     alignItems: 'stretch'
   },
-  titleTable: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    textAlign: 'center',
-
-  },
-  textCell: {
-    fontSize: 11,
-    textAlign: 'center',
-  }
 });
