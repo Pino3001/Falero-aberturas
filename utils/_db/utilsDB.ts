@@ -1,6 +1,6 @@
 import { BDState } from '@/utils/contexts/BDContext';
 import * as SQLite from 'expo-sqlite';
-import { Tablas, DATABASE_NAME, DATABASE_VERSION } from '../constants/variablesGlobales';
+import { Tablas, DATABASE_NAME, DATABASE_VERSION, preciosVariosEnum } from '../constants/variablesGlobales';
 import { ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, SerieOption } from '../constants/interfases';
 import { getColorAluminio, getCortinas, getPerfiles, getPreciosVarios, getSeries } from './operacionesDB';
 import { colorData, cortinaData, perfilesData, preciosVariosData, serieData } from '../valores_preCargados';
@@ -172,9 +172,9 @@ async function inicializaTablas() {
     if (countCortinas === 0) {
       cortinaData.map((cortina: CortinaOption) => {
         db.runSync(`
-                            INSERT INTO ${Tablas.cortinas} (tipo, preciom2) VALUES 
-                            (?, ?);
-                        `, [cortina.tipo, cortina.preciom2]);
+            INSERT INTO ${Tablas.cortinas} (tipo, preciom2) VALUES 
+            (?, ?);
+            `, [cortina.tipo, cortina.preciom2]);
       });
     } else {
       console.log("ya tengo al menos una serie");
@@ -211,9 +211,9 @@ async function inicializaTablas() {
     if (countPerfiles === 0) {
       perfilesData.map((perfil: PerfilesOption) => {
         db.runSync(`
-                            INSERT INTO ${Tablas.perfiles} (nombre, serie_id, gramos_por_m) VALUES 
-                            (?, ?, ?);
-                        `, [perfil.nombre, perfil.serie_id, perfil.gramos_por_m]);
+           INSERT INTO ${Tablas.perfiles} (nombre, serie_id, gramos_por_m) VALUES 
+            (?, ?, ?);
+       `, [perfil.nombre, perfil.serie_id, perfil.gramos_por_m]);
       });
     } else {
       console.log("ya tengo al menos una serie");
@@ -247,9 +247,9 @@ async function inicializaTablas() {
     if (countPereciosVarios === 0) {
       preciosVariosData.map((varios: PreciosVariosOption) => {
         db.runSync(`
-                            INSERT INTO ${Tablas.preciosVarios} ( nombre, precio) VALUES 
-                            (?, ?);
-                        `, [varios.nombre, varios.precio]);
+             INSERT INTO ${Tablas.preciosVarios} ( nombre, precio) VALUES 
+              (?, ?);
+         `, [varios.nombre, varios.precio]);
       });
     } else {
       console.log("ya tengo al menos una serie");
@@ -351,6 +351,18 @@ async function updateDbVersion(version: number) {
 const migrations: Record<number, () => Promise<void>> = {
   1: async () => {
     // Migración inicial
+  },
+  2: async () => {
+    try {
+      db.runSync(`
+        INSERT INTO ${Tablas.preciosVarios} ( nombre, precio) VALUES 
+        ( ? , 43);
+        `, [preciosVariosEnum.dolar]);
+    } catch (error) {
+      console.error('Error en migración 2:', error);
+      throw error; // Propaga el error para detener las migraciones
+    }
+
   },
 };
 

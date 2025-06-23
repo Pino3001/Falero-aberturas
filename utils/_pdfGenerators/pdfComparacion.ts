@@ -4,13 +4,18 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
-import { abreviarCortina } from '../calculos';
-import { ColorOption, CortinaOption, PresupuestosOption } from '../constants/interfases';
+import { abreviarCortina, abreviarPdf, abreviarSerie } from '../calculos';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, SerieOption } from '../constants/interfases';
+import { CurrencyOption, seriesEnum, seriesMostrarEnum } from '../constants/variablesGlobales';
+
 
 interface pdfComparadoProps {
   cortinas: CortinaOption[],
   presupuesto: PresupuestosOption[],
-  colors: ColorOption[],
+  acabado: ColorOption[],
+  series: SerieOption[],
+  currency: CurrencyOption
+
 }
 const loadImageAsBase64 = async (imageModule: number) => {
   try {
@@ -87,7 +92,7 @@ const cleanImageCache = async (daysToKeep: number = 1) => {
   }
 };
 
-const PDF_SUBFOLDER = `${FileSystem.cacheDirectory}PresupuestosPDF/`;
+const PDF_SUBFOLDER = `${FileSystem.cacheDirectory}PresupuestosPDFComparados/`;
 
 const crearSubCarpeta = async () => {
   try {
@@ -137,7 +142,7 @@ const cleanPDFsSubCarpeta = async (mantenerUltimos = 5) => {
   }
 };
 
-export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdfComparadoProps) => {
+export const GenerarPdfComparado = async ({ presupuesto, cortinas, acabado, series, currency }: pdfComparadoProps) => {
   const [logo_empresa, banco_republica, mercado_pago, insta, face] = await Promise.all([
     loadImageAsBase64(require('@/assets/images/ffalero.png')),
     loadImageAsBase64(require('@/assets/images/banco_republica.png')),
@@ -146,12 +151,20 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     loadImageAsBase64(require('@/assets/images/facebook.png'))
   ]);
 
+  const formatCurrency = (value: number) => {
+    const rounded = Math.round(value * 10) / 10;
+    if (currency.tipo === 'peso') {
+      return `${(rounded * currency.multiplicador).toFixed(0)} ${currency.affix}`;
+    }
+    return `${(rounded * currency.multiplicador).toFixed(1)} ${currency.affix}`;
+  };
+
   let html = `
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <style>
-    body {
+  body {
       font-family: 'Arial', sans-serif;
       padding: 0;
       margin: 0;
@@ -163,10 +176,9 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     }
 
     .header {
-      background-color: #106c6c;
+      background-color: #3E7D6D;
       color: white;
       padding: 20px;
-      border-radius: 8px 8px 0 0;
       position: relative;
       overflow: visible;
     }
@@ -214,11 +226,12 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     }
 
     .divider {
-      background-color: #94c0bb;
+      background-color: #C8E8DE;
       height: 30px;
+      border-radius: 0 0 8px 8px ;
     }
     .divider-footer {
-      background-color: #94c0bb;
+      background-color: #C8E8DE;
       height: 30px;
       width: 100%;
       border-radius:8px 8px  0 0 ;
@@ -231,9 +244,9 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     }
 
     th {
-      background-color: #117a7a;
+      background-color: #3E7D6D;
       color: white;
-      padding: 12px 8px;
+      padding: 8px 8px;
       font-weight: 600;
       font-size: 1.5rem;
     }
@@ -241,7 +254,7 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     td {
       padding: 10px 8px;
       border: 1px solid #ddd;
-      font-size: 1.5rem;
+      font-size: 1rem;
       text-align: left;
     }
 
@@ -264,8 +277,8 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     .total-amount {
       display: inline-block;
       margin: 0;
-      font-size: 16px;
-      color: #d32f2f;
+      font-size: 1rem;
+      color: rgb(179, 42, 42);
       font-weight: bold;
     }
 
@@ -276,7 +289,7 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     }
 
     .footer-content {
-      background-color: #117a7a;
+      background-color: #3E7D6D;
       display: flex;
       justify-content: space-between;
     }
@@ -356,8 +369,8 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
     <div class="header-content">
       <img class="header-logo" src="${logo_empresa} "alt="Logo FFalero">
       <div class="header-titles">
-        <h3>${presupuesto[0].nombre_cliente || ''}</h3>
-        <p>Fecha: ${presupuesto[0].fecha.toLocaleDateString()}</p>
+        <h3 style="font-size: 1.5rem;">${presupuesto[0].nombre_cliente || ''}</h3>
+        <p>Fecha: ${presupuesto[0].fecha.toLocaleDateString('es-ES')}</p>
       </div>
     </div>
   </div>
@@ -369,23 +382,22 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
         <th>Descripción</th>
         <th>Cant.</th>
         ${presupuesto.map(color_pre =>
-    `<th>${colors.find(i => i.id === color_pre.ventanas[0].id_color_aluminio)?.color}</th>`
+    `<th>${acabado.find(i => i.id === color_pre.ventanas[0].id_color_aluminio)?.color}</th>`
   ).join('')}
       </tr>
     </thead>
     <tbody>
       ${presupuesto[0].ventanas.map((ventana, index) =>
     `<tr>
-        <td>${ventana.tipo_abertura} ${abreviarCortina(ventana.id_cortina || 0, cortinas)} ${ventana.ancho} X ${ventana.alto}</td>
+        <td>${ventana.tipo_abertura} ${ventana.ancho}cm X ${ventana.alto}cm ${abreviarPdf(ventana.id_serie, series, ventana.id_cortina || 0, cortinas, ventana.mosquitero)}</td>
         <td style="text-align: center;">${ventana.cantidad}</td>
-        ${presupuesto.map(comparado =>`<td style="text-align: center;" > U$S ${(comparado.ventanas[index].precio_unitario * comparado.ventanas[index].cantidad).toFixed(2)}</td>`).join('')}
+        ${presupuesto.map(comparado => `<td style="text-align: center; font-size: 1rem; white-space: nowrap;">${formatCurrency(comparado.ventanas[index].precio_unitario * comparado.ventanas[index].cantidad)}</td>`).join('')}
         </tr>`).join('')}
-  <td></td>
+  <td>TOTAL:</td>
   <td></td>
     ${presupuesto.map(presu =>
-    `<td><span class="total-label">TOTAL:</span>
-    <span class="total-amount">U$S ${presu.precio_total.toFixed(2)}</span></td>`
-  ).join('')}
+      `<td style="text-align: center; color:rgb(179, 42, 42); font-size: 1rem; white-space: nowrap;">${formatCurrency(presu.precio_total)}</td>`
+    ).join('')}
 
     </tbody>
   </table>
@@ -404,7 +416,8 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
               <img class="mp-logo" src="${mercado_pago}" alt="Mercado Pago">
             </div>
           </div>
-          <div>Nombre de cuenta: Federico Falero</div>
+          <div>Nombre de cuenta:</div>
+          <div>Federico Falero</div>
         </div>
 
         <!-- Columna 2: Contacto -->
@@ -439,13 +452,13 @@ export const GenerarPdfComparado = async ({ presupuesto, cortinas, colors }: pdf
 
     // Generar PDF directamente en la ubicación final
     const nombreClienteLimpio = presupuesto[0].nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_');
-    const newFileName = `${PDF_SUBFOLDER}Presupuesto_${nombreClienteLimpio}_${new Date().getFullYear()}.pdf`;
+    const newFileName = `${PDF_SUBFOLDER}Presupuesto_${nombreClienteLimpio}_${new Date().getFullYear()}_Comparado.pdf`;
 
     // Generar PDF directamente en la ubicación deseada
     const { uri } = await Print.printToFileAsync({
       html,
-      width: 595,  // Ancho en puntos (A4)
-      height: 842, // Alto en puntos (A4)
+      width: 595,  
+      height: 842,  
       base64: false
     });
 

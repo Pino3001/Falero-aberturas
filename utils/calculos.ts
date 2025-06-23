@@ -1,6 +1,6 @@
-import { coloresEnum, cortinasAbrevEnum, cortinasEnum, PerfilesEnum, seriesEnum } from "./constants/variablesGlobales";
-import { ColorOption, CortinaOption, PerfilesOption, PerfilesSeries, PresupuestosOption, SerieOption } from "./constants/interfases";
-import { calcularPrecioVentana, determinarPerfiles } from "./_db/operacionesDB";
+import { coloresEnum, cortinasAbrevEnum, cortinasEnum, PerfilesEnum, seriesEnum, seriesMostrarEnum } from "./constants/variablesGlobales";
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PerfilesSeries, PresupuestosOption, SerieOption } from "./constants/interfases";
+import { calcularPrecioVentana } from "./_db/operacionesDB";
 
 
 interface aComprarProps {
@@ -131,9 +131,9 @@ interface aComprarProps {
     return Object.values(perfilesPorSerie);
 }; */
 
-const calculoPerfilesAcomprar = async ({ presupuestos, series }: aComprarProps) => {
+/* const calculoPerfilesAcomprar = async ({ presupuestos, series }: aComprarProps) => {
     const perfilesPorSerie: Record<string, PerfilesSeries> = {};
-    
+
     // Pre-mapeo de series para acceso rápido
     const seriesMap = new Map(series.map(s => [s.id, s]));
 
@@ -162,8 +162,8 @@ const calculoPerfilesAcomprar = async ({ presupuestos, series }: aComprarProps) 
                         break;
 
                     case seriesEnum.serie25_2h:
-                        if ([PerfilesEnum.MarcoSuperior, PerfilesEnum.MarcoInferior, 
-                             PerfilesEnum.HojaSuperior, PerfilesEnum.HojaInferior].includes(perfil.nombre as PerfilesEnum)) {
+                        if ([PerfilesEnum.MarcoSuperior, PerfilesEnum.MarcoInferior,
+                        PerfilesEnum.HojaSuperior, PerfilesEnum.HojaInferior].includes(perfil.nombre as PerfilesEnum)) {
                             dimension = ancho * cantidad;
                             serieAsignacion = seriesEnum.serie25_2h;
                         } else if ([PerfilesEnum.HojaLateral, PerfilesEnum.HojaEngancheCentral].includes(perfil.nombre as PerfilesEnum)) {
@@ -224,72 +224,225 @@ const calculoPerfilesAcomprar = async ({ presupuestos, series }: aComprarProps) 
     }
 
     return Object.values(perfilesPorSerie);
-};
+}; */
 
 
 
-export const abreviarCortina = (cortina_id: number, cortinas: CortinaOption[]): cortinasAbrevEnum => {
+export const abreviarCortina = (cortina_id: number, cortinas: CortinaOption[]): string => {
     const cortinaSeleccionada = cortinas.find(s => s.id === cortina_id);
     if (cortinaSeleccionada) {
-        if (cortinaSeleccionada.tipo === cortinasEnum.cortinapanelaluminioH25) return cortinasAbrevEnum.cortinapanelaluminioH25;
-        else if (cortinaSeleccionada.tipo === cortinasEnum.cortinapvch25) return cortinasAbrevEnum.cortinapvch25;
-        else if (cortinaSeleccionada.tipo === cortinasEnum.monoblockconpanelaluminio) return cortinasAbrevEnum.monoblockconpanelaluminio;
-        else if (cortinaSeleccionada.tipo === cortinasEnum.monoblockenpvc) return cortinasAbrevEnum.monoblockenpvc;
+        if (cortinaSeleccionada.tipo === cortinasEnum.cortinapanelaluminioH25) return 'con cortina ' + cortinasAbrevEnum.cortinapanelaluminioH25.toString();
+        else if (cortinaSeleccionada.tipo === cortinasEnum.cortinapvch25) return 'con cortina ' + cortinasAbrevEnum.cortinapvch25.toString();
+        else if (cortinaSeleccionada.tipo === cortinasEnum.monoblockconpanelaluminio) return 'con cortina ' + cortinasAbrevEnum.monoblockconpanelaluminio.toString();
+        else if (cortinaSeleccionada.tipo === cortinasEnum.monoblockenpvc) return 'con cortina ' + cortinasAbrevEnum.monoblockenpvc.toString();
     }
     return cortinasAbrevEnum.ninguna;
 
 }
 
+export const abreviarSerie = (id_serie: number, series: SerieOption[]): string => {
+    const serieSeleccionada = series.find(s => s.id === id_serie)
+    if (serieSeleccionada?.nombre === seriesEnum.serie20) return ' ' + seriesMostrarEnum.serie20.toString()
+    if (serieSeleccionada?.nombre === seriesEnum.serie25_2h) return ' ' + seriesMostrarEnum.serie25_2h.toString()
+    if (serieSeleccionada?.nombre === seriesEnum.serie25_3h) return ' ' + seriesMostrarEnum.serie25_3h.toString()
+    if (serieSeleccionada?.nombre === seriesEnum.serieA30) return ' ' + seriesMostrarEnum.serieA30.toString()
+    return ''
+}
+
+export const abreviarPdf = (id_serie: number, series: SerieOption[], cortina_id: number, cortinas: CortinaOption[], mosquitero: boolean): string => {
+    let text = abreviarSerie(id_serie, series);
+    if (mosquitero) {
+        if (abreviarCortina(cortina_id, cortinas) !== cortinasAbrevEnum.ninguna) {
+            text += ', ' + abreviarCortina(cortina_id, cortinas) + ' y mosquitero';
+        } else {
+            text += ', con mosquitero'
+        }
+    } else {
+        text += ', ' + abreviarCortina(cortina_id, cortinas);
+    }
+    return text;
+}
+
 export const compararAberturaColores = async (
-  presupuesto_comparar: PresupuestosOption,
-  colores_comparar: ColorOption[]
+    presupuesto_comparar: PresupuestosOption,
+    colores_comparar: ColorOption[]
 ): Promise<PresupuestosOption[]> => {
 
-  let lista: PresupuestosOption[] = [];
-  
-  for (const col_comparar of colores_comparar) {
-    const nuevoPresupuesto = await copiarPresupuestoConNuevoColor(
-      presupuesto_comparar, 
-      col_comparar.id
-    );
-    lista = [...lista, nuevoPresupuesto];
-  }
-  
-  return lista;
+    let lista: PresupuestosOption[] = [];
+
+    for (const col_comparar of colores_comparar) {
+        const nuevoPresupuesto = await copiarPresupuestoConNuevoColor(
+            presupuesto_comparar,
+            col_comparar.id
+        );
+        lista = [...lista, nuevoPresupuesto];
+    }
+
+    return lista;
 };
 
 
 async function copiarPresupuestoConNuevoColor(
-  presupuestoOriginal: PresupuestosOption,
-  nuevoColorId: number
+    presupuestoOriginal: PresupuestosOption,
+    nuevoColorId: number
 ): Promise<PresupuestosOption> {
-  // Crear copias de las ventanas con el nuevo color y calcula sus precios
-  const ventanasActualizadas = await Promise.all(
-    presupuestoOriginal.ventanas.map(async (ventana) => {
-      const ventanaConNuevoColor = {
-        ...ventana,
-        id_color_aluminio: nuevoColorId,
-      };
+    // Crear copias de las ventanas con el nuevo color y calcula sus precios
+    const ventanasActualizadas = await Promise.all(
+        presupuestoOriginal.ventanas.map(async (ventana) => {
+            const ventanaConNuevoColor = {
+                ...ventana,
+                id_color_aluminio: nuevoColorId,
+            };
 
-      const nuevoPrecio = await calcularPrecioVentana(ventanaConNuevoColor);
+            const nuevoPrecio = await calcularPrecioVentana(ventanaConNuevoColor);
 
-      return {
-        ...ventanaConNuevoColor,
-        precio_unitario: nuevoPrecio,
-      };
-    })
-  );
+            return {
+                ...ventanaConNuevoColor,
+                precio_unitario: nuevoPrecio,
+            };
+        })
+    );
 
-  // Calcular el nuevo precio_total
-  const nuevoPrecioTotal = ventanasActualizadas.reduce(
-    (total, ventana) => total + (ventana.cantidad * ventana.precio_unitario),
-    0
-  );
+    // Calcular el nuevo precio_total
+    const nuevoPrecioTotal = ventanasActualizadas.reduce(
+        (total, ventana) => total + (ventana.cantidad * ventana.precio_unitario),
+        0
+    );
 
-  // Presupuesto actualizado
-  return {
-    ...presupuestoOriginal,
-    ventanas: ventanasActualizadas,
-    precio_total: nuevoPrecioTotal,
-  };
+    // Presupuesto actualizado
+    return {
+        ...presupuestoOriginal,
+        ventanas: ventanasActualizadas,
+        precio_total: nuevoPrecioTotal,
+    };
 }
+
+function determinarPerfiles(serie: SerieOption, perfiles: PerfilesOption[]): PerfilesOption[] {
+    // Obtener perfiles directos de la serie
+    const perfilesDirectos = perfiles.filter(p => p.serie_id === serie.id);
+
+    // Obtener perfiles heredados (si existe serie padre)
+    let perfilesHeredados: PerfilesOption[] = [];
+
+    if (serie.serie_id_hereda) {
+        // Nombres de perfiles directos para evitar duplicados
+        const nombresDirectos = new Set(perfilesDirectos.map(p => p.nombre));
+
+        perfilesHeredados = perfiles.filter(p =>
+            p.serie_id === serie.serie_id_hereda &&
+            !nombresDirectos.has(p.nombre)
+        );
+    }
+
+    // Combinar ambos conjuntos
+    return [...perfilesDirectos, ...perfilesHeredados];
+}
+
+export const kilosAluminio = (abertura: AberturaPresupuestoOption, series: SerieOption[], perfiles: PerfilesOption[]): number => {
+    const serie = series.find(x => x.id == abertura.id_serie);
+
+    if (!serie) return -1;
+
+    const perfiles_serie = determinarPerfiles(serie, perfiles);
+
+    if (!perfiles) return -1;
+
+    if (serie.nombre === seriesEnum.serie20) return kilosAluminio_serie20(perfiles_serie, abertura);
+    if (serie.nombre === seriesEnum.serie25_2h) return kilosAluminio_serie25_2H(perfiles_serie, abertura);
+    if (serie.nombre === seriesEnum.serie25_3h) return kilosAluminio_serie25_3H(perfiles_serie, abertura);
+    if (serie.nombre === seriesEnum.serieA30) return kilosAluminio_serie30(perfiles_serie, abertura);
+
+    return -1;
+}
+
+const kilosAluminio_serie20 = (perfiles: PerfilesOption[], abertura: AberturaPresupuestoOption): number => {
+    let g: number = 0;
+
+    for (const p of perfiles) {
+        if (p.nombre === PerfilesEnum.MarcoSuperior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.MarcoInferior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.MarcoLateral) {
+            g += (p.gramos_por_m * abertura.alto) * 2;
+        }
+    }
+    return g / 100000;
+}
+
+const kilosAluminio_serie25_2H = (perfiles: PerfilesOption[], abertura: AberturaPresupuestoOption): number => {
+    let g: number = 0;
+
+    for (const p of perfiles) {
+        if (p.nombre === PerfilesEnum.MarcoSuperior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.MarcoInferior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.MarcoLateral) {
+            g += (p.gramos_por_m * abertura.alto) * 2;
+        } else if (p.nombre === PerfilesEnum.HojaInferior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.HojaSuperior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.HojaEngancheCentral) {
+            g += (p.gramos_por_m * abertura.alto) * 2;
+        } else if (p.nombre === PerfilesEnum.HojaLateral) {
+            g += (p.gramos_por_m * abertura.alto) * 2;
+        }
+    }
+    return g / 100000;
+}
+
+const kilosAluminio_serie25_3H = (perfiles: PerfilesOption[], abertura: AberturaPresupuestoOption): number => {
+    let g: number = 0;
+
+    for (const p of perfiles) {
+        if (p.nombre === PerfilesEnum.MarcoSuperior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.MarcoInferior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.MarcoLateral) {
+            g += (p.gramos_por_m * abertura.alto) * 2;
+        } else if (p.nombre === PerfilesEnum.HojaInferior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.HojaSuperior) {
+            g += p.gramos_por_m * abertura.ancho;
+        } else if (p.nombre === PerfilesEnum.HojaEngancheCentral) {
+            g += (p.gramos_por_m * abertura.alto) * 4;
+        } else if (p.nombre === PerfilesEnum.HojaLateral) {
+            g += (p.gramos_por_m * abertura.alto) * 2;
+        }
+    }
+    return g / 100000;
+}
+
+const kilosAluminio_serie30 = (perfiles: PerfilesOption[], abertura: AberturaPresupuestoOption): number => {
+    let g: number = 0;
+
+    for (const p of perfiles) {
+        if (p.nombre === PerfilesEnum.Contravidrio) {
+            g += p.gramos_por_m * (abertura.ancho + abertura.alto) * 2;
+        } else if (p.nombre === PerfilesEnum.MarcoFijo) {
+            g += p.gramos_por_m * (abertura.ancho + abertura.alto) * 2;
+        }
+    }
+    return g / 100000;
+}
+
+
+
+/*   const buscarPerfil = (ventana: AberturaPresupuestoOption, perfil_nombre: string): PerfilesOption => {
+    let perfilAux = perfiles.find(p => p.serie_id === ventana.id_serie && p.nombre === perfil_nombre);
+    if (perfilAux)
+      return perfilAux;
+    else {
+      const serie = series.find(x => x.id == ventana.id_serie);
+      if (serie && serie.serie_id_hereda) {
+        perfilAux = perfiles.find(p => p.serie_id === serie.serie_id_hereda && p.nombre === perfil_nombre)
+        if (perfilAux)
+          return perfilAux;
+      }
+    }
+    return PerfilesOptionDefault;
+  }
+  */

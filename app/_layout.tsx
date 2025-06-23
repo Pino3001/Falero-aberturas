@@ -2,25 +2,44 @@ import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeContextProvider, useTheme } from '../utils/contexts/ThemeContext';
 import { BDProvider } from '@/utils/contexts/BDContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
-  const { currentTheme } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: currentTheme.colors.surface,
-        },
-        headerTintColor: currentTheme.colors.onSurface,
+        headerShown: false,
+        headerStyle: { backgroundColor: colors.surface },
       }}
     >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen 
-        name="modalOpciones" 
-        options={{ 
+      {/* Pantalla de tabs - sin header (se manejará internamente) */}
+      <Stack.Screen name="(presupuestos)/(tabs)" />
+
+      {/* Pantalla de edición - con header personalizado */}
+      <Stack.Screen
+        name="(presupuestos)/editar/[id]"
+        options={{
+          title: 'Editar Presupuesto',
+          presentation: 'card',
+          headerBackTitle: 'Atrás',
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+          headerShown: true,
+          headerTransparent: true,
+        }}
+      />
+
+      {/* Modal de opciones - con header modal */}
+      <Stack.Screen
+        name="(presupuestos)/componentes/modales/opciones"
+        options={{
+          title: 'Opciones',
           presentation: 'modal',
-        }} 
+          headerShown: true,
+          headerLeft: () => null
+        }}
       />
     </Stack>
   );
@@ -28,12 +47,14 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeContextProvider>
-        <BDProvider>
-          <RootLayoutNav />
-        </BDProvider>
-      </ThemeContextProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeContextProvider>
+          <BDProvider>
+            <RootLayoutNav />
+          </BDProvider>
+        </ThemeContextProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

@@ -1,9 +1,11 @@
 export const AppFonts = {
   regular: 'RobotoSlab-Regular',
-  bold: 'RobotoSlab-Bold'
-} as const; 
+  bold: 'RobotoSlab-Bold',
+  mono_medium: 'RobotoMono-Medium',
+  mono_regular: 'RobotoMono-Regular'
+} as const;
 
-export  const robotoSlab = {
+export const robotoSlab = {
   "displayLarge": {
     "fontFamily": "RobotoSlab-Regular",
     "letterSpacing": 0,
@@ -154,5 +156,8 @@ export const robotoSlabFont = {
     fontFamily: 'RobotoSlab-Regular',
     fontWeight: '400' as const,
   },
-  // Añade otras variantes según sea necesario
+  numero: {
+    fontFamily: 'RobotoMono-Regular',
+    fontWeight: '500' as const,
+  },
 };

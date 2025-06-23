@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { initializeDatabase } from '@/utils/_db/utilsDB';
 import { AberturaPresupuestoOption, ColorOption, CortinaOption, PerfilesOption, PreciosVariosOption, PresupuestosOption, SerieOption } from '@/utils/constants/interfases';
-import { dropPresupuesto, insertarPresupuestoConItems, updateAbertura, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioTotalPresupuesto, updatePrecioVarios } from '@/utils/_db/operacionesDB';
+import { dropAbertura, dropPresupuesto, insertarPresupuestoConItems, updateAbertura, updateAberturaPresupuesto, updateAccesorioPrecio, updatePerfilGramos, updatePrecioColor, updatePrecioCortina, updatePrecioPuerta, updatePrecioTotalPresupuesto, updatePrecioVarios, updatePresupuesto } from '@/utils/_db/operacionesDB';
 
 
 interface BDContextType {
@@ -15,7 +15,9 @@ interface BDContextType {
     insertarPresupuestoConItemsBDContext: (obj: PresupuestosOption) => Promise<PresupuestosOption>;
     updateAccesorioPrecioBDContext: (serie: SerieOption) => Promise<void>;
     dropPresupuestoBDContext: (obj: PresupuestosOption) => Promise<void>;
-    updatePresupuestoBDContext: (presu_actualizado: PresupuestosOption, abertura_actualizada: AberturaPresupuestoOption) => Promise<void>;
+    dropAberturaBDContext: (presupuesto: PresupuestosOption, abertura: AberturaPresupuestoOption) => Promise<PresupuestosOption>;
+    updateAberturaPresupuestoBDContext: (presu_actualizado: PresupuestosOption, abertura_actualizada: AberturaPresupuestoOption) => Promise<PresupuestosOption>;
+    updatePresupuestoBDContext: (presu_actualizado: PresupuestosOption) => Promise<PresupuestosOption>;
     //obtenerKilajePerfil: (id:string, serie: string) => number;// gramos x metro
 }
 
@@ -37,7 +39,9 @@ export const BDContext = createContext<BDContextType>({
     updatePrecioVariosBDContext: async () => { },
     updatePrecioCortinaBDContext: async () => { },
     updatePrecioPuertaBDContext: async () => { },
-    updatePresupuestoBDContext: async () => { },
+    updateAberturaPresupuestoBDContext: async () => {
+        throw new Error('updateAberturaPresupuestoBDContext not implemented');
+    },
     insertarPresupuestoConItemsBDContext: async () => {
         throw new Error('insertarPresupuestoConItemsBDContext not implemented');
     },
@@ -45,6 +49,12 @@ export const BDContext = createContext<BDContextType>({
         throw new Error('updateAccesorioPrecioBDContext not implemented');
     },
     dropPresupuestoBDContext: async () => {
+        throw new Error('insertarPresupuestoConItemsBDContext not implemented');
+    },
+    dropAberturaBDContext: async () => {
+        throw new Error('insertarPresupuestoConItemsBDContext not implemented');
+    },
+    updatePresupuestoBDContext: async () => {
         throw new Error('insertarPresupuestoConItemsBDContext not implemented');
     },
 });
@@ -94,6 +104,15 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         const resultado = await dropPresupuesto(presupuesto);
         setPresupuestosUltimaAct(new Date());
         return resultado;
+    }
+
+    const dropAberturaBDContext = async (
+        presupuesto: PresupuestosOption,
+        abertura: AberturaPresupuestoOption
+    ): Promise<PresupuestosOption> => {
+        const resultado = await dropAbertura(presupuesto, abertura);
+        setPresupuestosUltimaAct(new Date());
+        return presupuesto;
     }
 
     const updateAccesorioPrecioBDContext = async (serie: SerieOption) => {
@@ -165,10 +184,21 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
         });
     }
 
-    const updatePresupuestoBDContext = async (presu_actualizado: PresupuestosOption, abertura_actualizada: AberturaPresupuestoOption) => {
-        await updateAbertura(abertura_actualizada);
-        await updatePrecioTotalPresupuesto(presu_actualizado);
-        setPresupuestosUltimaAct(new Date()); // Esto disparará la recarga de datos
+    const updateAberturaPresupuestoBDContext = async (
+        presu_actualizado: PresupuestosOption,
+        abertura_actualizada: AberturaPresupuestoOption
+    ): Promise<PresupuestosOption> => {
+        await updateAberturaPresupuesto(presu_actualizado, abertura_actualizada);
+        setPresupuestosUltimaAct(new Date());
+        return presu_actualizado; // Devuelve el presupuesto ya actualizado
+    };
+
+    const updatePresupuestoBDContext = async (
+        presu_actualizado: PresupuestosOption,
+    ): Promise<PresupuestosOption> => {
+        await updatePresupuesto(presu_actualizado);
+        setPresupuestosUltimaAct(new Date());
+        return presu_actualizado; // Devuelve el presupuesto ya actualizado
     };
 
     const updatePrecioCortinaBDContext = async (cortina: CortinaOption) => {
@@ -217,6 +247,8 @@ export const BDProvider: React.FC<BDProviderProps> = ({ children }) => {
             dropPresupuestoBDContext,
             updatePrecioCortinaBDContext,
             updatePrecioPuertaBDContext,
+            updateAberturaPresupuestoBDContext,
+            dropAberturaBDContext,
             updatePresupuestoBDContext
 
         }}>

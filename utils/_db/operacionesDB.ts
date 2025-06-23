@@ -55,6 +55,26 @@ export const insertarPresupuestoConItems = async (
     }
 };
 
+export async function insertAbertura(abertura: AberturaPresupuestoOption, presupuestoId: number) {
+    let result = await db.runAsync(`
+                    INSERT INTO ${Tablas.aberturaPresupuesto} 
+                    (id_presupuesto, ancho, alto, tipo_abertura, id_color_aluminio, id_serie, id_cortina ,vidrio, mosquitero, cantidad, precio_unitario) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                `, [
+        presupuestoId,
+        abertura.ancho,
+        abertura.alto,
+        abertura.tipo_abertura,
+        abertura.id_color_aluminio,
+        abertura.id_serie,
+        abertura.id_cortina || null,
+        Number(abertura.vidrio),
+        Number(abertura.mosquitero),
+        abertura.cantidad,
+        abertura.precio_unitario
+    ]);
+}
+
 export async function getSeries(): Promise<SerieOption[]> {
     return await db.getAllAsync<SerieOption>(`SELECT * FROM ${Tablas.series}`);
 }
@@ -81,6 +101,14 @@ export async function getPerfiles(): Promise<PerfilesOption[]> {
 
 export async function getPreciosVarios(): Promise<PreciosVariosOption[]> {
     return await db.getAllAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios}`);
+}
+
+export async function getDolar(): Promise<number> {
+    const result = await db.getFirstAsync<PreciosVariosOption>(`SELECT * FROM ${Tablas.preciosVarios} WHERE nombre = 'Dolar'`);
+    if (result === null) {
+        throw new Error("No se encontró el valor del Dólar en la base de datos");
+    }
+    return result.precio;
 }
 
 export async function getPresupuestos(): Promise<PresupuestosOption[]> {
@@ -235,6 +263,61 @@ export const updateAbertura = async (objeto: AberturaPresupuestoOption) => {
         objeto.id
     ]);
 };
+
+export const updateAberturaPresupuesto = async (presu_actualizado: PresupuestosOption, abertura_actualizada: AberturaPresupuestoOption) => {
+    try {
+        await db.withExclusiveTransactionAsync(async () => {
+            await updateAbertura(abertura_actualizada);
+            await updatePrecioTotalPresupuesto(presu_actualizado);
+        });
+    } catch (error) {
+        console.error(`Error al modificar presupuesto`, error);
+    }
+}
+
+export const updatePresupuesto = async (presu_actualizado: PresupuestosOption) => {
+    try {
+        await db.withExclusiveTransactionAsync(async () => {
+            // Obtener el presupuesto actual de la base de datos
+            const presuPrevio = await getPresupuestoByID(presu_actualizado.id);
+
+            // Identificar aberturas que ya no están en el presupuesto actualizado (para eliminarlas)
+            const aberturasAEliminar = presuPrevio.ventanas.filter(
+                aberturaPrevia => !presu_actualizado.ventanas.some(
+                    aberturaActualizada => aberturaActualizada.id === aberturaPrevia.id
+                )
+            );
+
+            // Procesar eliminaciones
+            for (const abertura of aberturasAEliminar) {
+                await dropAbertura(presuPrevio, abertura);
+            }
+
+            // Procesar aberturas actualizadas o nuevas
+            for (const abertura of presu_actualizado.ventanas) {
+                const aberturaExistente = presuPrevio.ventanas.find(a => a.id === abertura.id);
+
+                if (aberturaExistente) {
+                    // Abertura existente - actualizar
+                    await updateAbertura(abertura);
+                } else {
+                    // Nueva abertura - agregar
+                    await insertAbertura(abertura, presuPrevio.id);
+                }
+            }
+
+            await db.runAsync(`
+                 UPDATE ${Tablas.presupuestos} 
+                 SET precio_total = ?,
+                    nombre_cliente = ? 
+                 WHERE id = ?;
+        `, [presu_actualizado.precio_total, presu_actualizado.nombre_cliente, presuPrevio.id]);
+        });
+    } catch (error) {
+        console.error(`Error al modificar presupuesto`, error);
+        throw error; // Es importante propagar el error para manejo externo
+    }
+}
 
 export const updatePrecioTotalPresupuesto = async (objeto: PresupuestosOption) => {
     await db.runAsync(`
@@ -481,5 +564,49 @@ export async function dropPresupuesto(presupuesto: PresupuestosOption): Promise<
         } else {
             throw new Error('No se pudo eliminar el presupuesto: error desconocido');
         }
+    }
+}
+
+export async function dropAbertura(presupuesto: PresupuestosOption, abertura: AberturaPresupuestoOption): Promise<PresupuestosOption> {
+    try {
+        const valorAbertura = abertura.precio_unitario * abertura.cantidad;
+        const nuevoPrecioTotal = presupuesto.precio_total - valorAbertura;
+
+        await db.withExclusiveTransactionAsync(async () => {
+            // Eliminar la abertura
+            const resultAbertura = await db.runAsync(
+                `DELETE FROM ${Tablas.aberturaPresupuesto} WHERE id_presupuesto = ? AND id = ?`,
+                [presupuesto.id, abertura.id]
+            );
+
+            if (resultAbertura.changes === 0) {
+                throw new Error(`No se encontró la abertura con ID ${abertura.id} en el presupuesto ${presupuesto.id}`);
+            }
+
+            // Actualizar el presupuesto principal
+            const result = await db.runAsync(
+                `UPDATE ${Tablas.presupuestos} 
+                SET precio_total = ? 
+                WHERE id = ?;`,
+                [nuevoPrecioTotal, presupuesto.id]
+            );
+
+            if (result.changes === 0) {
+                throw new Error(`No se pudo actualizar el presupuesto con ID ${presupuesto.id}`);
+            }
+
+        });
+        // Devuelve el presupuesto actualizado con el nuevo precio total y sin la abertura eliminada
+        return {
+            ...presupuesto,
+            precio_total: nuevoPrecioTotal,
+            ventanas: presupuesto.ventanas.filter(v => v.id !== abertura.id)
+        };
+
+    } catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`No se pudo eliminar la abertura del presupuesto: ${error.message}`);
+        }
+        throw new Error('No se pudo eliminar la abertura del presupuesto: error desconocido');
     }
 }

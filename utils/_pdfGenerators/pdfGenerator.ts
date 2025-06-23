@@ -4,14 +4,16 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
-import { abreviarCortina } from '../calculos';
-import { ColorOption, CortinaOption, PresupuestosOption } from '../constants/interfases';
+import { abreviarCortina, abreviarPdf } from '../calculos';
+import { AberturaPresupuestoOption, ColorOption, CortinaOption, PresupuestosOption, SerieOption } from '../constants/interfases';
+import { CurrencyOption, seriesEnum } from '../constants/variablesGlobales';
 
 interface pdfProps {
   cortinas: CortinaOption[],
   presupuesto: PresupuestosOption,
-  colors: ColorOption[]
-
+  colors: ColorOption[],
+  series: SerieOption[],
+  currency: CurrencyOption
 }
 const loadImageAsBase64 = async (imageModule: number) => {
   try {
@@ -24,7 +26,7 @@ const loadImageAsBase64 = async (imageModule: number) => {
 
     if (asset.localUri) {
       // Normalizar el URI para Android
-      const normalizedUri = Platform.OS === 'android' 
+      const normalizedUri = Platform.OS === 'android'
         ? asset.localUri.replace('file:/', 'file:///')
         : asset.localUri;
 
@@ -65,12 +67,12 @@ const cleanImageCache = async (daysToKeep: number = 1) => {
     }
     const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
     const currentTime = Date.now();
-    
+
     const cleanupPromises = files.map(async (file) => {
       if (file.match(/\.(jpg|jpeg|png|gif|bmp|temp_)/i)) {
         const filePath = `${FileSystem.cacheDirectory}${file}`;
         const fileInfo = await FileSystem.getInfoAsync(filePath);
-        
+
         if (fileInfo.exists) {
           // Borrar archivos temporales antiguos (mayores a daysToKeep días)
           const fileAgeDays = (currentTime - fileInfo.modificationTime) / (1000 * 60 * 60 * 24);
@@ -138,7 +140,7 @@ const cleanPDFsSubCarpeta = async (mantenerUltimos = 5) => {
   }
 };
 
-export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) => {
+export const GenerarPDF = async ({ presupuesto, cortinas, colors, series, currency }: pdfProps) => {
   const [logo_empresa, banco_republica, mercado_pago, insta, face] = await Promise.all([
     loadImageAsBase64(require('@/assets/images/ffalero.png')),
     loadImageAsBase64(require('@/assets/images/banco_republica.png')),
@@ -146,6 +148,22 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     loadImageAsBase64(require('@/assets/images/instagram.png')),
     loadImageAsBase64(require('@/assets/images/facebook.png'))
   ]);
+
+  const nomSerie = (abertura: AberturaPresupuestoOption): string => {
+    if (series.find(s => s.id === abertura.id_serie)?.nombre === seriesEnum.serie20) return seriesEnum.serie20.toString();
+    if (series.find(s => s.id === abertura.id_serie)?.nombre === seriesEnum.serie25_2h) return seriesEnum.serie25_2h.toString();
+    if (series.find(s => s.id === abertura.id_serie)?.nombre === seriesEnum.serie25_3h) return seriesEnum.serie25_3h.toString();
+    if (series.find(s => s.id === abertura.id_serie)?.nombre === seriesEnum.serieA30) return seriesEnum.serieA30.toString();
+    return ''
+  }
+
+  const formatCurrency = (value: number) => {
+    const rounded = Math.round(value * 10) / 10;
+    if (currency.tipo === 'peso') {
+      return `${(rounded * currency.multiplicador).toFixed(0)} ${currency.affix}`;
+    }
+    return `${(rounded * currency.multiplicador).toFixed(1)} ${currency.affix}`;
+  };
 
   const html = `
 <html lang="es">
@@ -165,10 +183,9 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     }
 
     .header {
-      background-color: #106c6c;
+      background-color: #3E7D6D;
       color: white;
       padding: 20px;
-      border-radius: 8px 8px 0 0;
       position: relative;
       overflow: visible;
     }
@@ -216,11 +233,12 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     }
 
     .divider {
-      background-color: #94c0bb;
+      background-color: #C8E8DE;
       height: 30px;
+      border-radius: 0 0 8px 8px ;
     }
     .divider-footer {
-      background-color: #94c0bb;
+      background-color: #C8E8DE;
       height: 30px;
       width: 100%;
       border-radius:8px 8px  0 0 ;
@@ -233,9 +251,9 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     }
 
     th {
-      background-color: #117a7a;
+      background-color: #3E7D6D;
       color: white;
-      padding: 12px 8px;
+      padding: 8px 8px;
       font-weight: 600;
       font-size: 1.5rem;
     }
@@ -243,7 +261,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     td {
       padding: 10px 8px;
       border: 1px solid #ddd;
-      font-size: 1.5rem;
+      font-size: 1rem;
       text-align: left;
     }
 
@@ -267,7 +285,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
       display: inline-block;
       margin: 0;
       font-size: 18px;
-      color: #d32f2f;
+      color: rgb(179, 42, 42);
       font-weight: bold;
     }
 
@@ -278,7 +296,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     }
 
     .footer-content {
-      background-color: #117a7a;
+      background-color: #3E7D6D;
       display: flex;
       justify-content: space-between;
     }
@@ -358,8 +376,8 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     <div class="header-content">
       <img class="header-logo" src="${logo_empresa} "alt="Logo FFalero">
       <div class="header-titles">
-        <h3>${presupuesto.nombre_cliente || ''}</h3>
-        <p>Fecha: ${presupuesto.fecha.toLocaleDateString()}</p>
+        <h3 style="font-size: 1.5rem;">${presupuesto.nombre_cliente || ''}</h3>
+        <p>Fecha: ${presupuesto.fecha.toLocaleDateString('es-ES')}</p>
       </div>
     </div>
   </div>
@@ -376,10 +394,9 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
     <tbody>
       ${presupuesto.ventanas.map(ventana =>
     `<tr>
-        <td>${ventana.tipo_abertura} ${abreviarCortina(ventana.id_cortina || 0, cortinas)} ${ventana.ancho} X ${ventana.alto} ${colors.find(c =>
-      c.id === ventana.id_color_aluminio)?.color || ''}</td>
+        <td>${ventana.tipo_abertura} ${ventana.ancho}cm X ${ventana.alto}cm ${abreviarPdf(ventana.id_serie, series, ventana.id_cortina || 0, cortinas, ventana.mosquitero)}</td>
         <td style="text-align: center;">${ventana.cantidad}</td>
-        <td style="text-align: center;">U$S ${(ventana.precio_unitario * ventana.cantidad).toFixed(2)}</td>
+        <td style="text-align: center;">${formatCurrency(ventana.precio_unitario * ventana.cantidad)}</td>
       </tr>`
   ).join('')}
     </tbody>
@@ -387,7 +404,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
 
   <div class="total-section">
     <span class="total-label">TOTAL A PAGAR:</span>
-    <span class="total-amount">U$S ${presupuesto.precio_total.toFixed(2)}</span>
+    <span class="total-amount">${formatCurrency(presupuesto.precio_total)}</span>
   </div>
 
     <div class="footer">
@@ -404,7 +421,8 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
               <img class="mp-logo" src="${mercado_pago}" alt="Mercado Pago">
             </div>
           </div>
-          <div>Nombre de cuenta: Federico Falero</div>
+          <div>Nombre de cuenta:</div>
+          <div>Federico Falero</div>
         </div>
 
         <!-- Columna 2: Contacto -->
@@ -437,7 +455,7 @@ export const GenerarPDF = async ({ presupuesto, cortinas, colors }: pdfProps) =>
 
     // Generar PDF directamente en la ubicación final
     const nombreClienteLimpio = presupuesto.nombre_cliente.replace(/[^a-zA-Z0-9]/g, '_');
-    const newFileName = `${PDF_SUBFOLDER}Presupuesto_${nombreClienteLimpio}_${new Date().getFullYear()}.pdf`;
+    const newFileName = `${PDF_SUBFOLDER}Presupuesto_${currency.label}_${nombreClienteLimpio}_${new Date().getFullYear()}.pdf`;
 
     // Generar PDF directamente en la ubicación deseada
     const { uri } = await Print.printToFileAsync({

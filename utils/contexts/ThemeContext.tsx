@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { DarkTheme as NavigationDarkTheme, DefaultTheme as NavigationDefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { ColorSchemeName, View } from 'react-native';
+import { ColorSchemeName, Platform, StatusBar, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, adaptNavigationTheme, configureFonts, MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
 import {
   useFonts,
   RobotoSlab_400Regular,
-  RobotoSlab_700Bold
+  RobotoSlab_700Bold,
 } from '@expo-google-fonts/roboto-slab';
+import {
+  RobotoMono_400Regular,
+  RobotoMono_500Medium,
+} from '@expo-google-fonts/roboto-mono';
 import { robotoSlab, robotoSlabFont } from './fonts';
-
+import * as NavigationBar from 'expo-navigation-bar';
 
 
 
@@ -64,6 +68,9 @@ const CombinedDefaultTheme = {
       level4: '#E6EBE0',          // Elevación 4
       level5: '#E1E6DB',          // Elevación 5
     },
+    navigationBar: 'transparent', // Para edge-to-edge
+    statusBar: 'transparent',
+    headerTint: '#000000',
   },
   fonts: configureFonts({
     config: robotoSlab,
@@ -117,13 +124,15 @@ const CombinedDarkTheme = {
       level4: '#2C3535',          // Elevación 4 oscura
       level5: '#313B3B',          // Elevación 5 oscura
     },
+    navigationBar: 'transparent', // Para edge-to-edge
+    statusBar: 'transparent',
+    headerTint: '#FFFFFF'
   },
   fonts: configureFonts({
     config: robotoSlab,
     isV3: true,
   }),
 };
-console.log("CombinedDefaultTheme.fonts", JSON.stringify(CombinedDefaultTheme.fonts));
 // Tipado del contexto del tema
 type AppTheme = typeof CombinedDefaultTheme;
 
@@ -160,6 +169,8 @@ export const ThemeContextProvider = ({ children }: { children: React.ReactNode }
   const [fontsLoaded] = useFonts({
     'RobotoSlab-Regular': RobotoSlab_400Regular,
     'RobotoSlab-Bold': RobotoSlab_700Bold,
+    'RobotoMono-Regular': RobotoMono_400Regular,
+    'RobotoMono-Medium': RobotoMono_500Medium,
   });
 
   const [theme, setTheme] = useState<ColorSchemeName>('light');
@@ -169,11 +180,45 @@ export const ThemeContextProvider = ({ children }: { children: React.ReactNode }
     [theme]
   );
 
+  // Efecto para configurar la barra de navegación y estado
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const configureAndroidBars = async () => {
+      try {
+        // Configuración inicial
+        StatusBar.setBarStyle(theme === 'dark' ? 'light-content' : 'dark-content');
+        StatusBar.setBackgroundColor('transparent');
+        StatusBar.setTranslucent(true);
+
+        // Solución robusta para la barra de navegación
+        await NavigationBar.setVisibilityAsync('hidden');
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const buttonStyle = theme === 'dark' ? 'light' : 'dark';
+        await NavigationBar.setButtonStyleAsync(buttonStyle);
+        await NavigationBar.setVisibilityAsync('visible');
+
+        // Configuración para Android 12+
+        if (Number(Platform.Version) >= 31) {
+          await NavigationBar.setPositionAsync('absolute');
+          await NavigationBar.setBehaviorAsync('inset-swipe');
+        }
+      } catch (error) {
+        console.warn('Error configuring Android bars:', error);
+      }
+    };
+
+    configureAndroidBars();
+  }, [theme]);
+
   useEffect(() => {
     if (fontsLoaded) {
       console.log('Fuentes cargadas:', {
         'RobotoSlab-Regular': !!RobotoSlab_400Regular,
         'RobotoSlab-Bold': !!RobotoSlab_700Bold,
+        'RobotoMono-Regular': RobotoMono_400Regular,
+        'RobotoMono-Medium': RobotoMono_500Medium,
       });
     }
   }, [fontsLoaded]);

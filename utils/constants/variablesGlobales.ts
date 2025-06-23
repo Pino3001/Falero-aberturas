@@ -1,6 +1,7 @@
+import { getDolar } from "../_db/operacionesDB";
 
 export const DATABASE_NAME = 'carpintelab.db';
-export const DATABASE_VERSION = 1;
+export const DATABASE_VERSION = 2;
 
 export enum PerfilesEnum {
     MarcoSuperior = "Marco superior",
@@ -21,6 +22,13 @@ export enum seriesEnum {
     serieA30 = 'SERIE A30'
 }
 
+export enum seriesMostrarEnum {
+    serie20 = 'serie 20',
+    serie25_2h = 'serie 25 2 hojas',
+    serie25_3h = 'serie 25 3 hojas',
+    serieA30 = 'serie A30'
+}
+
 export enum coloresEnum {
     naturalAnodizado = "Natural Anodizado",
     blanco = "Blanco",
@@ -31,7 +39,8 @@ export enum coloresEnum {
 export enum preciosVariosEnum {
     manoDeObra = "Mano de obra",
     vidrio = "Vidrio",
-    mosquitero = "Mosquitero"
+    mosquitero = "Mosquitero",
+    dolar = 'Dolar'
 }
 
 export const enum cortinasEnum {
@@ -69,3 +78,14 @@ export enum cortinasAbrevEnum {
     monoblockenpvc = 'Monoblock pvc',
     monoblockconpanelaluminio = 'Monoblock aluminio',
 }
+
+export type CurrencyType = 'peso' | 'dolar';
+
+
+export interface CurrencyOption {
+    tipo: CurrencyType;
+    multiplicador: number;
+    label: string;
+    affix: string;
+}
+
