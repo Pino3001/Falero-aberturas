@@ -11,6 +11,7 @@ import { getPresupuestoByID } from '@/utils/_db/operacionesDB';
 import ShowAberturaNueva from '@/app/(diseños-sistema)/componentes/ShowAberturaNueva';
 import { useTheme } from '@/utils/contexts/ThemeContext';
 import { useBD } from '@/utils/contexts/BDContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type Ventana = {
   id_abertura_presupuesto?: number;
@@ -52,7 +53,7 @@ export default function EditNuevoPresupuesto() {
     loadPresupuesto();
   }, [id, presupuestosUltimaAct]);
 
-
+  const insets = useSafeAreaInsets();
   const [mostrarAbertura, setMostrarAbertura] = useState(false);
   const [agregarCerrado, setAgregarCerrado] = useState(false);
   const contador = useRef(0);
@@ -260,7 +261,7 @@ export default function EditNuevoPresupuesto() {
         ) : null}
 
         {presupuesto.ventanas.length > 0 ? (
-          <View style={{ flexDirection: 'row', gap: 10, alignContent: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 80 }}>
+          <View style={{ flexDirection: 'row', gap: 10, alignContent: 'center', justifyContent: 'center', marginTop: 10, marginBottom: insets.bottom + 70 }}>
             <Button style={{
               borderRadius: 6,
               backgroundColor: colors.primary,
@@ -305,7 +306,7 @@ export default function EditNuevoPresupuesto() {
           margin: 16,
           right: 0,
           bottom: 0,
-          marginBottom: id ? 30 : 16 /* Si id no es undefined estoy editando y no creando */
+          marginBottom: id ? insets.bottom + 16 : 16 /* Si id no es undefined estoy editando y no creando */
         }}
         onPress={() => {
           if (agregarCerrado && dropdownRef.current) {

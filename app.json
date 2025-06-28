@@ -30,8 +30,8 @@
       "package": "com.pinoDev.Carpintelab",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon-adaptive.png",
-        "backgroundColor": "#RRGGBB"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true
     },

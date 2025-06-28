@@ -16,24 +16,13 @@ export default function TabLayout() {
         },
         tabBarStyle: {
           backgroundColor: colors.surface,
-          elevation: 6,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: -3 },
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.outline,
-        tabBarItemStyle: {
-          borderRadius: 16, // Bordes redondeados en los botones
-          marginHorizontal: 6,
-          marginVertical: 6,
-          height: 48,
-        },
+
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '500',
-          marginBottom: 4,
         },
         headerShown: true,
         tabBarButton: (props) => {
@@ -53,11 +42,11 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="nuevo/index"
+        name="index"
         options={{
           title: 'Nuevo Presupuesto',
           tabBarLabel: 'Nuevo',
-          tabBarIcon: ({ color }) => <Entypo name="calculator" size={28} color={color} />,
+          tabBarIcon: ({ color }) => <Entypo name="calculator" size={24} color={color} />,
           headerRight: () => (
             <Link href='/componentes/modales/opciones' asChild>
               <Pressable>
@@ -75,17 +64,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="listado/index"
+        name="listado"
         options={{
           title: 'Presupuestos',
-          tabBarIcon: ({ color }) => <FontAwesome name="list-ol" size={28} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome name="list-ol" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="materiales/index"
+        name="materiales"
         options={{
           title: 'Materiales',
-          tabBarIcon: ({ color }) => <FontAwesome name="usd" size={28} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome name="usd" size={24} color={color} />,
         }}
       />
     </Tabs>

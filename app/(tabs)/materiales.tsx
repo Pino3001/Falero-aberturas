@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableWithoutFeedback, Keyboard } from 'react-nati
 import { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useTheme } from '@/utils/contexts/ThemeContext';
-import EditPrecio from '../../editar/materiales/[tipo]';
+import EditPrecio from '../(presupuestos)/editar/materiales/[tipo]';
 
 export default function TabEditarPrecioScreen() {
   const {colors} = useTheme();

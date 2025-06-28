@@ -15,7 +15,7 @@ function RootLayoutNav() {
       }}
     >
       {/* Pantalla de tabs - sin header (se manejará internamente) */}
-      <Stack.Screen name="(presupuestos)/(tabs)" />
+      <Stack.Screen name="(tabs)" />
 
       {/* Pantalla de edición - con header personalizado */}
       <Stack.Screen

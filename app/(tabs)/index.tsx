@@ -1,7 +1,7 @@
 import { StyleSheet, Keyboard, View } from 'react-native';
 import { useTheme } from '@/utils/contexts/ThemeContext';
 import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
-import NuevoPresupuesto from '../../componentes/NuevoPresupuesto';
+import NuevoPresupuesto from '../(presupuestos)/componentes/NuevoPresupuesto';
 
 export default function TabOneScreen() {
   const { colors } = useTheme();

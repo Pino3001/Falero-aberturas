@@ -1,5 +1,5 @@
 import { useTheme } from '@/utils/contexts/ThemeContext';
-import Presupuestos from '../../componentes/ListaPresupuestos';
+import Presupuestos from '../(presupuestos)/componentes/ListaPresupuestos';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 

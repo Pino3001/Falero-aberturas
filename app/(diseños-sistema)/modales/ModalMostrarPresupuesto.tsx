@@ -246,6 +246,7 @@ const ModalMostrarPresupuesto = ({ visible, onClose, initialPresupuesto }: Modal
                   manoObra={costoManoDeObra(item)}
                   currency={cambio}
                   onLongPress={() => {
+                    setEditAbertura(true)
                     setSelectedEdit(item)
                   }}
                   onDelete={handleDeleteAbertura}
@@ -432,7 +433,9 @@ const ModalMostrarPresupuesto = ({ visible, onClose, initialPresupuesto }: Modal
               setSelectedEdit(undefined)
             }}
             visible={true}
-            hideModal={() => setSelectedEdit(undefined)}
+            hideModal={() => {
+              setEditAbertura(false)
+              setSelectedEdit(undefined)}}
             acabadoProps={acabado}
             seriesProps={series}
             cortinasProps={cortinas}

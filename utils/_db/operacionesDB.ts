@@ -416,7 +416,6 @@ async function calculoPesoVentana(
 ): Promise<number> {
 
     const perfilesDeLaSerie = await determinarPerfiles(serie);
-    console.log("perfilesDeLaSerie", perfilesDeLaSerie);
     if (!perfilesDeLaSerie) throw new Error('Serie no válida');
 
     let pesoTotal = 0;
@@ -491,10 +490,8 @@ export async function calcularPrecioVentana(
         if (typeof ventana.alto !== 'number' || typeof ventana.ancho !== 'number' || ventana.alto <= 0 || ventana.ancho <= 0) {
             throw new Error('Dimensiones de ventana inválidas');
         }
-        console.log("ventana", ventana);
         const serieVentana = (await getSeries()).find(s => s.id === ventana.id_serie) ?? SerieOptionDefault;
         const pesoPerfiles = await calculoPesoVentana(ventana.ancho, ventana.alto, serieVentana);
-        console.log("pesoPerfiles", pesoPerfiles);
         const precioAluminioColor = await calcularPrecioColor(ventana.id_color_aluminio, pesoPerfiles);
 
         let precioVidrio = 0;
@@ -509,7 +506,6 @@ export async function calcularPrecioVentana(
         }
 
         const precioCortina = await calcularPrecioCortina(ventana.ancho, ventana.alto, ventana.id_cortina ?? -1);
-        console.log('idCortina', ventana.id_cortina);
 
         // Obtención de datos adicionales con valores por defecto
         const serieAccesorio = await db.getFirstAsync<SerieOption>(
@@ -525,7 +521,6 @@ export async function calcularPrecioVentana(
         const sumaComponentes = precioAluminioColor + precioVidrio + precioMosquitero + (serieAccesorio.precio_accesorios || 0) + precioCortina;
         const factorGanancia = varioManoObra.precio || 1;
         const manoObra = (factorGanancia + 100) / 100;
-        console.log('mano de obra', sumaComponentes);
 
         const precioFinal = sumaComponentes * manoObra;
 

@@ -120,11 +120,9 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps & Ed
             const fetchData = async () => {
                 try {
                     const { alto, ancho, id_serie, id_color_aluminio } = ventana;
-                    console.log('la serie no se guarda?', id_serie, 'ancho?', ancho, 'color aluminio', id_color_aluminio);
 
                     setState((prevState) => ({ ...prevState, ventana: { ...prevState.ventana, preciounitario: -2, precioTotal: -2 } }));
                     if (colorPuerta) {
-                        console.log('ahora si entro');
                         setState((prevState) => ({ ...prevState, ventana: { ...prevState.ventana, precio_unitario: acabado.find(c => c.id === id_color_aluminio)?.precio_un_puerta || -1 } }));
                         setColorPuerta(false);
                     } else if (alto < 1 || ancho < 1 || id_serie === -1 || id_color_aluminio === -1 || isNaN(alto) || isNaN(ancho)) {
@@ -214,7 +212,7 @@ const AgregarAbertura = forwardRef<AgregarAberturaRef, AgregarAberturaProps & Ed
 
                         <View style={{ width: '100%', alignItems: "center", alignSelf: 'center', backgroundColor: colors.background, marginTop: 10 }}>
                             <View style={{ flexDirection: 'column', gap: 15, alignContent: "center", alignItems: "center", width: '100%' }}>
-                                <Text variant='titleMedium' style={{ textAlign: 'center' }}>Agregar Nueva Abertura</Text>
+                                <Text variant='titleMedium' style={{ textAlign: 'center' }}>{ventanaAEditar ? 'Editar Abertura' : 'Agregar Nueva Abertura'}</Text>
                                 <View style={{
                                     flexDirection: 'row', justifyContent: "space-between",
                                     width: "100%", alignItems: "center"

@@ -14,7 +14,7 @@ const DialogComponent: React.FC<DialogComponentProps> = ({ Title, Content_text, 
     const [showDialog, setShowDialog] = useState(true);
 
     return (
-        <Dialog visible={showDialog} onDismiss={() => { setShowDialog(false); onCancel(); }} style={{position: 'absolute', width: '90%' }} >
+        <Dialog visible={showDialog} onDismiss={() => { setShowDialog(false); onCancel(); }} style={{position: 'absolute', width: '90%', alignSelf: "center" }} >
             <Dialog.Title >{Title}</Dialog.Title>
             <Dialog.Content>
                 <Text >{Content_text}</Text>
